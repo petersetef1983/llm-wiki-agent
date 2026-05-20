@@ -16,6 +16,7 @@ kb/
 build/
 dist/
 dist2/
+dist[0-9]*/
 *.egg-info/
 test_venv/
 
