@@ -15,7 +15,9 @@ kb/
 
 build/
 dist/
+dist2/
 *.egg-info/
+test_venv/
 
 .tmp-*/
 .tmp-llm-wiki-*/
