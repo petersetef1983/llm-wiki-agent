@@ -1,0 +1,21 @@
+collections:
+  wiki:
+    path: .
+    pattern: "**/*.md"
+    ignore:
+      - "sources/**"
+      - "**/sources/**"
+      - "**/outputs/document-intake/**"
+      - "inbox/**"
+      - ".agents/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".trae/**"
+      - ".opencode/**"
+      - ".openclaw/**"
+      - ".hermes/**"
+      - ".obsidian/**"
+      - ".qmd/**"
+      - ".search-index/**"
+      - ".query-index/**"
+      - ".data-sources/**"

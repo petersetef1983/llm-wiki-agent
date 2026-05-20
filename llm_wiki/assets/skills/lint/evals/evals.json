@@ -1,0 +1,35 @@
+{
+  "skill_name": "lint",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "请对当前知识库做一次结构和内容质量检查，重点找出缺失入口页、死链、placeholder 页面和未被 `index/themes.md` 收录的主题，并按严重程度汇总。",
+      "expected_output": "输出分级后的 lint 结果，先突出最影响可导航性和可维护性的问题。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我们刚做完一轮批量更新，请先运行知识库巡检，只在低风险且明显的情况下自动修复，例如可确定的索引遗漏，其余问题只报告不要擅自改内容。",
+      "expected_output": "先审计，再只处理低风险问题，明确区分已修复项和需要人工判断的项。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "我准备导入一批旧资料，先帮我看现在知识库的结构健康度，尤其是主题完整度、关键 wiki 页面缺失和潜在的链接问题。",
+      "expected_output": "给出面向导入前准备的 lint 报告，帮助用户决定是否应先修结构再执行 ingest。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "请检查技术资产复用链路，重点看 reuse-candidates 是否有 direct/adapt 候选未提升、shared/assets 是否没有目标项目 asset-match-brief、以及 asset-match-brief 是否引用了不存在的资产。",
+      "expected_output": "lint 应在 knowledge scope 中报告未提升候选、未匹配资产，并把 asset-match-brief 引用不存在的 shared/assets 作为 error。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "请检查 shared/assets 中的技术资产 frontmatter 是否包含 license_compatibility，并识别缺失该字段的资产页。",
+      "expected_output": "lint 应在 graph scope 中把缺少 license_compatibility 的技术资产标为 asset_missing_field。",
+      "files": []
+    }
+  ]
+}

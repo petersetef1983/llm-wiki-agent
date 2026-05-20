@@ -1,0 +1,29 @@
+{
+  "skill_name": "query",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "请基于知识库说明 `project-example` 当前最关键的架构约束是什么、这些约束分别来自哪些页面，并区分已经确认的结论和仍需验证的推断。",
+      "expected_output": "给出 grounded answer，引用相关页面类型，清楚区分确认结论、推断和证据缺口。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "帮我总结 `research-example` 目前的核心假设、已有证据和下一步最值得做的实验。如果知识库里证据不够，请明确说出来。",
+      "expected_output": "从 research 主题现有沉淀中组织答案，并明确指出缺失证据与建议的下一步。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "请比较一下几个主题里都出现过的工具或工作流模式，优先从 `shared/` 和各主题 overview 里找共性，如果发现适合沉淀的新共性，也请指出。",
+      "expected_output": "完成跨主题综合回答，并在适合时提出 write-back 建议，但不要凭空补充仓库外知识。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "基于当前知识库，给我一个 `agent-evaluation` 相关软件开发项目的实现建议：请沿 theme、shared graph 和 outputs 读，并指出哪些建议是 confirmed、哪些只是 inferred。",
+      "expected_output": "从 wiki graph 和 outputs 出发给出工程指引，包括实现影响、下一步、风险、来源页，并明确 graph/output/evidence 缺口。",
+      "files": []
+    }
+  ]
+}

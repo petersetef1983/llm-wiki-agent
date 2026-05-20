@@ -1,0 +1,28 @@
+{
+  "name": "llm-wiki-agent",
+  "version": "0.1.0",
+  "description": "Initialize and maintain cross-platform LLM Wiki knowledge bases.",
+  "author": {
+    "name": "LLM Wiki Maintainers"
+  },
+  "homepage": "https://github.com/llm-wiki/llm-wiki-agent",
+  "repository": "https://github.com/llm-wiki/llm-wiki-agent",
+  "license": "MIT",
+  "keywords": ["llm-wiki", "knowledge-base", "agent", "codex"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "LLM Wiki Agent",
+    "shortDescription": "Initialize and maintain portable LLM Wiki knowledge bases.",
+    "longDescription": "Provides Codex-facing workflows for bootstrapping, syncing, diagnosing, and upgrading LLM Wiki agent assets across Codex, Claude Code, Trae, OpenCode, OpenClaw, and Hermes.",
+    "developerName": "LLM Wiki Maintainers",
+    "category": "Productivity",
+    "capabilities": ["Write"],
+    "websiteURL": "https://github.com/llm-wiki/llm-wiki-agent",
+    "defaultPrompt": [
+      "Initialize an LLM Wiki in a new folder.",
+      "Check my LLM Wiki for platform drift.",
+      "Upgrade my LLM Wiki runtime assets."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

@@ -1,0 +1,3 @@
+recursive-include llm_wiki/assets *
+recursive-exclude llm_wiki/assets __pycache__ *.pyc *.pyo
+global-exclude __pycache__ *.py[cod]

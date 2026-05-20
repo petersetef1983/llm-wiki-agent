@@ -1,0 +1,46 @@
+[
+  {
+    "query": "基于知识库告诉我 `project-example` 当前最关键的架构约束是什么，并标出这些结论分别来自哪里。",
+    "should_trigger": true
+  },
+  {
+    "query": "我们之前有没有处理过类似的故障？请从现有 wiki 里找证据，不要给泛泛建议。",
+    "should_trigger": true
+  },
+  {
+    "query": "帮我总结 `research-example` 现在最可信的结论、支撑证据和还没被验证的部分。",
+    "should_trigger": true
+  },
+  {
+    "query": "请比较几个主题里反复出现的模式，优先基于已有沉淀来回答，而不是上网找资料。",
+    "should_trigger": true
+  },
+  {
+    "query": "我想快速理解这个知识库里某个项目为什么这么设计，请从现有页面中提炼关键原因。",
+    "should_trigger": true
+  },
+  {
+    "query": "基于已有 wiki 和 outputs，给我一个后续软件开发项目的实现指引，并说明证据缺口。",
+    "should_trigger": true
+  },
+  {
+    "query": "把 `inbox/to-be-filed/` 里的新资料整理进对应主题，并更新 overview。",
+    "should_trigger": false
+  },
+  {
+    "query": "检查一下整个知识库有哪些死链、缺入口页、占位符还没清掉。",
+    "should_trigger": false
+  },
+  {
+    "query": "先帮我把这批会议纪要归档，再回答它会不会改变当前项目结论。",
+    "should_trigger": false
+  },
+  {
+    "query": "我准备做一次大迁移，先看现在结构健不健康，哪些地方最容易出问题。",
+    "should_trigger": false
+  },
+  {
+    "query": "请把 `research-example` 的 overview 直接重写成一份更完整的新版本，不用先回答我问题。",
+    "should_trigger": false
+  }
+]

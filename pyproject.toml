@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-wiki-agent"
+version = "0.1.0"
+description = "Cross-platform LLM Wiki agent initializer and platform adapter."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "LLM Wiki Maintainers" }
+]
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.8,<2"]
+
+[project.scripts]
+llm-wiki = "llm_wiki.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["llm_wiki*"]
+
+[tool.setuptools.package-data]
+llm_wiki = ["assets/**/*"]
+
+[tool.setuptools.exclude-package-data]
+llm_wiki = ["assets/**/__pycache__/*", "assets/**/*.pyc", "assets/**/*.pyo"]

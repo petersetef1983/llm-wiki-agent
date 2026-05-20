@@ -1,0 +1,74 @@
+[
+  {
+    "query": "把 `inbox/to-be-filed/` 里的会议纪要和事故记录整理进 `project-example`，优先更新已有 wiki 页面，不要只给我摘要。",
+    "should_trigger": true
+  },
+  {
+    "query": "我刚丢了一批研究笔记到 inbox，先转成 markdown evidence，再帮我归档到合适主题，并把稳定结论沉淀进知识库。",
+    "should_trigger": true
+  },
+  {
+    "query": "把这篇新文章吸收进 `research-example`，先做 source 到 markdown evidence 的转换，再更新相关 glossary 和 open questions。",
+    "should_trigger": true
+  },
+  {
+    "query": "这些原始资料看起来横跨两个主题，先帮我判断哪些该进 `shared/`，哪些该留在具体 theme。",
+    "should_trigger": true
+  },
+  {
+    "query": "我有一堆散乱笔记，想整理进现有知识库并保留来源链路，别新开一堆重复页面。",
+    "should_trigger": true
+  },
+  {
+    "query": "把 `inbox/to-be-filed/` 里的访谈录音和产品演示视频整理进知识库，先转成 markdown evidence artifact，再更新对应 theme 的 overview 和 open questions。",
+    "should_trigger": true
+  },
+  {
+    "query": "我只有一个 YouTube 链接 `https://youtu.be/jtUkPLZxc40?si=Y_RRqsqZAr3lyfV4`，请直接把里面的内容吸收到知识库，先生成 markdown evidence artifact，再决定更新哪些页面。",
+    "should_trigger": true
+  },
+  {
+    "query": "我连续补了两份同一主题的新资料，先转成 evidence，再帮我修订旧结论，不要给每份资料都单独新建页面。",
+    "should_trigger": true
+  },
+  {
+    "query": "这批资料质量一般，请先做 evidence；如果证据不够，就把不确定项写进 open questions，不要强行沉淀到 shared。",
+    "should_trigger": true
+  },
+  {
+    "query": "请基于当前知识库回答一下 `project-example` 现在最关键的架构约束是什么，不需要改文件。",
+    "should_trigger": false
+  },
+  {
+    "query": "帮我只把这个 PDF 转成 markdown，先不要更新任何 wiki 页面。",
+    "should_trigger": false
+  },
+  {
+    "query": "只帮我创建一个 isolated entity 页面，不需要读来源、更新 wiki 或维护工程输出。",
+    "should_trigger": false
+  },
+  {
+    "query": "帮我做一次知识库体检，重点看死链、缺失入口页和 placeholder 页面。",
+    "should_trigger": false
+  },
+  {
+    "query": "先检查一下结构问题，再决定我这批旧笔记要不要导进来。",
+    "should_trigger": false
+  },
+  {
+    "query": "总结一下 `research-example` 目前有哪些高置信结论和证据缺口，直接回答我就行。",
+    "should_trigger": false
+  },
+  {
+    "query": "我想把 `project-example` 的 overview 改写得更清晰一点，但没有新增资料需要归档。",
+    "should_trigger": false
+  },
+  {
+    "query": "ingest https://github.com/example/service，并把 API 参数、返回值和源码位置沉淀进知识库。",
+    "should_trigger": true
+  },
+  {
+    "query": "把这个自建 GitLab 项目做逆向分析后更新到 project 主题，顺便检查 commit 是否过时。",
+    "should_trigger": true
+  }
+]

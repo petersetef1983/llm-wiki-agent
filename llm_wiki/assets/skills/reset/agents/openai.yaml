@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reset"
+  short_description: "Reset the LLM Wiki to an empty skeleton."
+  default_prompt: "Reset this LLM Wiki knowledge base to its basic skeleton after planning and explicit confirmation."

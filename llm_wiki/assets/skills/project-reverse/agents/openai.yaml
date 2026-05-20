@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Reverse"
+  short_description: "Analyze repos into structured evidence."
+  default_prompt: "Analyze a GitHub, GitLab, self-hosted, or local Git repository into structured project reverse-engineering evidence without writing durable wiki pages."

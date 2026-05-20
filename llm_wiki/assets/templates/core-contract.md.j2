@@ -1,0 +1,87 @@
+This is the always-loaded contract for this LLM Wiki. Keep it small:
+load detailed rules only when needed.
+
+Paths are relative to this directory unless a path says otherwise.
+
+## Core Contract
+
+1. Maintain this as a persistent wiki, not a chat transcript or retrieval dump.
+2. Raw sources are immutable. Never edit files under any `sources/` directory.
+3. Compile new material into durable, interlinked wiki knowledge.
+4. Update existing pages before creating new pages.
+5. Preserve traceability from important claims to source files or evidence artifacts.
+6. Record uncertainty, contradictions, stale conclusions, and missing evidence.
+7. Optimize every edit for future retrieval, maintenance, engineering reuse, and onboarding.
+
+## Structure
+
+- `themes/{general,project,research}/NN-theme-name/` contains one theme.
+- Each theme uses `README.md`, `meta.md`, `sources/`, `wiki/`, `stack/`, and `outputs/`.
+- `shared/{entities,concepts,patterns,methods,tools,glossary}/` contains cross-theme knowledge.
+- `schema/` contains detailed rules, templates, and graph conventions.
+- `index/` contains global navigation.
+- `inbox/` is temporary holding for unclassified material.
+- `.agents/skills/` is the editable skill source; platform skill directories are generated mirrors.
+
+Detailed rules live in:
+
+- `schema/theme-types.md`
+- `schema/wiki-writing-standards.md`
+- `schema/output-format.md`
+- `schema/entity-relationship-model.md`
+
+## Classification
+
+Classify new material in this order:
+
+1. If it clearly belongs to one existing theme, file it into that theme.
+2. If it is reusable across themes, update or create the right `shared/` page.
+3. If the destination is unclear, preserve it in `inbox/to-be-filed/` and record the uncertainty.
+4. If a long-lived topic is emerging, propose a new numbered theme under the right category.
+
+Do not create duplicate themes, duplicate concept pages, or parallel summaries that will drift.
+
+## Mode Router
+
+Before acting, identify the matching mode and read only the needed skill:
+
+- `ingest`: bring new material into durable wiki knowledge. Read `{{ SKILL_ROOT }}/ingest/SKILL.md`.
+- `query`: answer from existing wiki, graph, outputs, and evidence. Read `{{ SKILL_ROOT }}/query/SKILL.md`.
+- `lint`: audit structure, graph, or knowledge health. Read `{{ SKILL_ROOT }}/lint/SKILL.md`.
+- `reset`: clear the whole knowledge base back to skeleton. Read `{{ SKILL_ROOT }}/reset/SKILL.md`.
+- `bootstrap`: create a new LLM Wiki in an empty or equivalent-empty directory. Read `{{ SKILL_ROOT }}/bootstrap/SKILL.md`.
+
+`project-reverse` is an auxiliary analyzer used by `ingest` for Git repositories; it produces evidence only.
+
+When a task spans modes, prefer this order: `lint` before risky bulk edits, then `ingest`, then `query`.
+
+## Safety Rules
+
+- Never modify raw source files.
+- Never hide contradictions or weak evidence.
+- Never treat evidence artifacts as final wiki pages.
+- Never hand-edit generated platform skill mirrors.
+- Never reset without a dry run, removal plan, and explicit confirmation.
+- Never bootstrap a non-empty directory or an existing LLM Wiki root.
+
+## Skill Mirrors
+
+After editing `.agents/skills/`, regenerate platform mirrors:
+
+```powershell
+python -m llm_wiki sync --root .
+python -m llm_wiki sync --root . --check
+```
+
+## Loading Discipline
+
+- L0: keep this file as the only always-loaded contract.
+- L1: read the matched `SKILL.md`.
+- L2: read skill `references/` or `schema/` only when implementation details matter.
+- L3: read templates, scripts, sources, and outputs only when directly relevant.
+
+Target size for this file: 500-1,000 estimated tokens. Over 1,500 estimated tokens is a regression.
+
+## Fallback
+
+If unsure: preserve raw material, update conservatively, link evidence, record uncertainty, and prefer stable structure over novelty.

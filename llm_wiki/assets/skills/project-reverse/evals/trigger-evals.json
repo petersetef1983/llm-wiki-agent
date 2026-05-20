@@ -1,0 +1,18 @@
+[
+  {
+    "query": "帮我逆向分析这个 GitHub 项目，输出架构、API、配置和复用评估 evidence。",
+    "should_trigger": true
+  },
+  {
+    "query": "检查这个 GitLab 仓库相对上次 analyzed commit 有没有变化，并生成 diff evidence。",
+    "should_trigger": true
+  },
+  {
+    "query": "把这份会议纪要整理进知识库。",
+    "should_trigger": false
+  },
+  {
+    "query": "基于现有 wiki 回答这个项目为什么这么设计。",
+    "should_trigger": false
+  }
+]

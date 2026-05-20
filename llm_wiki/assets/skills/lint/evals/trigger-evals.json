@@ -1,0 +1,42 @@
+[
+  {
+    "query": "帮我检查一下知识库现在有哪些主题缺入口页、有哪些死链、哪些页面还是 placeholder。",
+    "should_trigger": true
+  },
+  {
+    "query": "我准备做一次大规模 ingest，先看看当前结构有没有明显问题，避免把脏数据继续堆进去。",
+    "should_trigger": true
+  },
+  {
+    "query": "请对整个知识库做一次体检，按 error / warning / info 分组，先告诉我最影响导航的问题。",
+    "should_trigger": true
+  },
+  {
+    "query": "最近改了不少页面，帮我巡检一下是否出现索引遗漏、空文件和坏链接；如果有低风险问题可以顺手修。",
+    "should_trigger": true
+  },
+  {
+    "query": "在给新人接手前，先帮我审一下这套知识库的结构和完整度，看看还有哪些明显缺口。",
+    "should_trigger": true
+  },
+  {
+    "query": "请基于现有知识库回答一下 `project-example` 的关键约束，不需要检查文件健康度。",
+    "should_trigger": false
+  },
+  {
+    "query": "把 inbox 里的新资料整理进对应主题，并更新 overview 和 glossary。",
+    "should_trigger": false
+  },
+  {
+    "query": "先把这份新事故复盘吸收进知识库，最后顺带告诉我目前有哪些结论变化。",
+    "should_trigger": false
+  },
+  {
+    "query": "我想重写 `research-example` 的 README，让它更适合 onboarding，不是要做健康检查。",
+    "should_trigger": false
+  },
+  {
+    "query": "帮我比较一下几个主题中重复出现的模式，然后给一个总结，不用检查目录结构。",
+    "should_trigger": false
+  }
+]

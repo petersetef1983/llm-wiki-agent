@@ -1,0 +1,71 @@
+{
+  "skill_name": "ingest",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "请把 `inbox/to-be-filed/` 里新放进去的项目会议纪要和事故复盘吸收到 `project-example`：先把原始资料转成 markdown 证据，再基于现有 wiki 页面做增量维护，优先更新已有页面，不要停留在抽取产物上；如果证据不完整，请补充 `open-questions.md`。",
+      "expected_output": "保留原始资料，先生成 markdown evidence artifact，再由 LLM 更新 `project-example` 下的 durable wiki 页面，并明确哪些结论仍不确定。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我刚补了一批关于模型评测方法的笔记到 inbox，请把它们吸收到 `research-example`。要求先做 markdown evidence，再基于现有 wiki 进行综合，更新 `wiki/overview.md` 或相关研究页面，并判断哪些内容真的值得进入 `shared/`。",
+      "expected_output": "完成 research 主题的 evidence-first ingest，并由 LLM 维护现有页面；只有跨主题且稳定的知识才进入 `shared/`。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "这里有一份关于排查 CI 波动的零散记录，可能既和某个项目有关，也可能值得抽成通用 troubleshooting 模式。请先整理成 markdown evidence，再判断该更新哪个已有页面；如果证据不足，宁可暂存到 `inbox/to-be-filed/` 或写进 `open-questions.md`，不要强行分类。",
+      "expected_output": "先形成 evidence artifact，再基于不确定性做保守更新，避免强行落位，并说明后续该如何继续沉淀。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "我往 `inbox/to-be-filed/` 放了一段访谈录音和一段产品演示视频，请先把原始文件转成可复用的 markdown evidence artifact，再让 LLM 把稳定结论沉淀到合适的主题页面里；如果转写质量有限，要把不确定性写出来，不要只留下 artifact。",
+      "expected_output": "为音频和视频生成 evidence artifact，保留原始文件，并完成 durable wiki 更新，同时明确哪些结论可信、哪些内容仍待确认。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "这里有一个 YouTube 视频链接 `https://youtu.be/jtUkPLZxc40?si=Y_RRqsqZAr3lyfV4`，请直接把它吸收到知识库：先生成 markdown evidence artifact，再更新现有主题页面；如果 `markitdown` 只拿到页面壳，请继续尝试 transcript fallback，但如果字幕仍不可用，就只保留低置信证据并明确说明不要过度沉淀。",
+      "expected_output": "直接接受 URL source，优先产出 markdown evidence，再由 LLM 判断是否足以更新 durable wiki；若转录或上下文不足，要明确标注不确定性并避免过度写入。",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "同一个 `research-example` 主题我连续补了两份资料：第一份是模型评测框架综述，第二份是对旧框架结论的修正笔记。请把它们一起吸收到知识库，先形成 evidence artifact，再在现有页面上做增量修订，不要为每份资料各建一套平行页面。",
+      "expected_output": "先处理多来源 evidence，再修订已有 durable wiki 页面，体现增量维护和旧结论修订，而不是重复新增页面。",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "我给你一份质量很差的扫描 PDF 和一个拿不到字幕的短视频链接。请先尝试生成 markdown evidence，但如果证据仍然很弱，就只做保守沉淀：保留 artifact、补充 `open-questions.md`，不要强行创建 `shared/` 页面或写出高置信总结。",
+      "expected_output": "低质量来源会被保留为 evidence，但 durable wiki 更新保持保守，显式记录待确认项，不会过度 shared 化或输出高置信结论。",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "请 ingest `https://github.com/example/service`，目标是后续二次开发：先用项目逆向分析生成结构化 evidence，再把架构、模块、API 参数、源码位置、配置、部署、数据存储和复用评估编译进 project 主题。",
+      "expected_output": "Git 仓库 ingest 必须先运行 `project-reverse` 生成 `project-reverse-analysis.json`、source anchor 和 focused artifacts，再由 `ingest` 更新 durable wiki；结果不能停留在 overview，必须包含 API registry、模块页、配置/构建/数据/复用页面、sync-status，以及 API 的 source path/source line/confidence/field_confidence。",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "已摄取的 GitLab 项目远端更新很频繁，请检查知识库里的分析是否过时；如果 commit 变了，只生成增量 diff evidence 并更新受影响 wiki 页面，不要全量重写。",
+      "expected_output": "先用 `project-reverse check-freshness` 对比 analyzed commit 和 latest checked commit；若 stale，生成 `project-reverse-diff.json`/`sync-diff.json`，按 API/module/config/data-storage/build-deploy/docs/tests/dependencies/security 分类变更，并只更新 affected_pages 与 `outputs/sync-status.md`。",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "请检查一个已经完成 Git repo ingest 的 project 主题是否符合交付标准，尤其是 API 源码位置、freshness、sync status、模块页和工程 outputs。",
+      "expected_output": "合格结果必须有 source-location-first `wiki/api.md`、模块页、配置/构建/数据/复用页面、工程 outputs、`outputs/sync-status.md`，并明确 API 字段级置信度和 incremental affected_pages 记录；缺任何一项都不能判定为完成。",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "请 ingest 一个新的开源项目主题，并主动检查它和现有 shared/assets、其他项目 reuse-candidates 的复用关系；如果发现匹配，请更新目标项目 asset-match-brief，不要只生成项目自己的 wiki。",
+      "expected_output": "Git repo ingest 在编译 durable wiki 和 reuse-candidates 后，应运行跨项目复用扫描，读取 shared/assets、technical-assets index 和其他 reuse-candidates，并把目标侧匹配写入 asset-match-brief。",
+      "files": []
+    }
+  ]
+}

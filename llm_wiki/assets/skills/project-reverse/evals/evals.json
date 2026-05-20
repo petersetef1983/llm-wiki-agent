@@ -1,0 +1,35 @@
+{
+  "skill_name": "project-reverse",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "请分析一个 GitHub 仓库，生成结构化逆向 evidence：模块、API、配置、构建部署、数据存储、风险、复用评估和 freshness metadata。不要写 durable wiki 页面。",
+      "expected_output": "运行 `project_reverse_helper.py analyze` 或等价流程，生成 `project-reverse-analysis.json`，包含 commit metadata、api_registry、modules、configuration、build_deploy、data_storage、risks、reuse_assessment 和 freshness。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "请从源码中提取 API registry，要求每个 API 尽量包含参数、返回值、功能、源码文件和行号；不确定的信息标 tentative。",
+      "expected_output": "API entries 使用 kind/name/path/parameters/request_shape/return_shape/behavior/source_path/source_line/owner_module/confidence/field_confidence/evidence 字段；source location 可 confirmed，但缺少参数、请求体、返回值或仅凭命名推断时必须标 tentative 或 inferred。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "请检查已分析 commit 是否落后于远端，并为 old..new 生成增量变更证据。",
+      "expected_output": "使用 check-freshness 和 diff 工作流，输出 latest_checked_commit、status、changed_files、changed_area_counts、affected_pages 和 next_update_scope，不直接修改 wiki。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "请分析一个包含 GraphQL schema、WebSocket 事件、Spring/.NET 路由和 Docker/Kubernetes/Terraform 配置的仓库，生成 project-reverse evidence。",
+      "expected_output": "project-reverse evidence 至少把 GraphQL/WebSocket/Spring/.NET API 候选、配置/部署文件、security/debt/reuse 风险写入结构化字段；无法确认 request/return shape 的 API 不得标为完全 confirmed。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "请重复分析同一个已存在 source anchor 的本地 Git 仓库，并额外输出 api-registry.json 和 module-map.json。",
+      "expected_output": "analyze 使用 timestamp 或 skip 模式处理已有 source anchor，不覆盖旧 anchor；主 evidence 包含 source_anchor_path 和 focused_artifacts，旁路产物包含 api-registry.json 与 module-map.json。",
+      "files": []
+    }
+  ]
+}

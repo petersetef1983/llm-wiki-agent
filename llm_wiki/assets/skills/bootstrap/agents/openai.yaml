@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bootstrap"
+  short_description: "Create a new LLM Wiki skeleton in an empty directory."
+  default_prompt: "Bootstrap a complete LLM Wiki skeleton in an empty or equivalent-empty directory after a dry run and explicit confirmation."
