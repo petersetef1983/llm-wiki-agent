@@ -23,7 +23,7 @@ class TreeDiff:
 
 
 def assets_root() -> resources.abc.Traversable:
-    return resources.files("llm_wiki") / "assets"
+    return resources.files("src") / "assets"
 
 
 def should_skip_asset(rel: Path) -> bool:

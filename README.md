@@ -7,9 +7,9 @@ Inspired by Andrej Karpathy's [LLM Wiki](https://gist.github.com/karpathy/442a6b
 ## Quick Start
 
 ```powershell
-python -m llm_wiki init --target C:\path\to\my-kb --dry-run
-python -m llm_wiki init --target C:\path\to\my-kb --confirm CREATE-KB
-python -m llm_wiki doctor --root C:\path\to\my-kb
+python -m src init --target C:\path\to\my-kb --dry-run
+python -m src init --target C:\path\to\my-kb --confirm CREATE-KB
+python -m src doctor --root C:\path\to\my-kb
 ```
 
 The generated knowledge base keeps `.agents/skills/` as the canonical skill source and mirrors platform-specific assets for Codex, Claude Code, Trae, OpenCode, OpenClaw, and Hermes. Default initialization enables all six platforms; pass `--platform codex,opencode` or similar to choose a subset.
@@ -17,11 +17,11 @@ The generated knowledge base keeps `.agents/skills/` as the canonical skill sour
 ## Commands
 
 ```powershell
-python -m llm_wiki init --target C:\path\to\my-kb --dry-run
-python -m llm_wiki sync --root C:\path\to\my-kb --check
-python -m llm_wiki doctor --root C:\path\to\my-kb
-python -m llm_wiki upgrade --root C:\path\to\my-kb --dry-run
-python -m llm_wiki serve --root C:\path\to\my-kb --transport stdio
+python -m src init --target C:\path\to\my-kb --dry-run
+python -m src sync --root C:\path\to\my-kb --check
+python -m src doctor --root C:\path\to\my-kb
+python -m src upgrade --root C:\path\to\my-kb --dry-run
+python -m src serve --root C:\path\to\my-kb --transport stdio
 ```
 
 Install MCP support with `pipx install "llm-wiki-agent[mcp]"`.

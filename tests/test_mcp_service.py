@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from llm_wiki.mcp.service import CONFIRM_WRITE, LLMWikiService
+from src.mcp.service import CONFIRM_WRITE, LLMWikiService
 
 
 class LLMWikiServiceTests(unittest.TestCase):

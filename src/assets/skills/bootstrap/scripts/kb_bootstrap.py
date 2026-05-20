@@ -10,7 +10,7 @@ from pathlib import Path
 
 def add_local_package_root() -> None:
     for parent in Path(__file__).resolve().parents:
-        if (parent / "llm_wiki" / "__init__.py").exists():
+        if (parent / "src" / "__init__.py").exists():
             sys.path.insert(0, str(parent))
             return
 
@@ -27,13 +27,13 @@ def parse_args() -> argparse.Namespace:
 
     check_parser = subparsers.add_parser(
         "check-skeleton",
-        help="Deprecated; use `python -m llm_wiki upgrade --dry-run`.",
+        help="Deprecated; use `python -m src upgrade --dry-run`.",
     )
     check_parser.add_argument("--root", default="kb", help="Knowledge base root directory.")
 
     sync_parser = subparsers.add_parser(
         "sync-skeleton",
-        help="Deprecated; use `python -m llm_wiki upgrade`.",
+        help="Deprecated; use `python -m src upgrade`.",
     )
     sync_parser.add_argument("--root", default="kb", help="Knowledge base root directory.")
     sync_parser.add_argument("--dry-run", action="store_true", help="Accepted for compatibility.")
@@ -46,10 +46,10 @@ def main() -> int:
     args = parse_args()
     add_local_package_root()
     try:
-        from llm_wiki.core.bootstrap import init_kb
-        from llm_wiki.core.manifest import parse_platforms
+        from src.core.bootstrap import init_kb
+        from src.core.manifest import parse_platforms
     except ModuleNotFoundError:
-        print("llm_wiki package is required. Install with `pipx install llm-wiki-agent`.", file=sys.stderr)
+        print("src package is required. Install with `pipx install llm-wiki-agent`.", file=sys.stderr)
         return 2
 
     if args.command == "create":
@@ -62,7 +62,7 @@ def main() -> int:
         )
 
     print("Bootstrap skeleton maintenance moved into the packaged agent kit.", file=sys.stderr)
-    print("Use `python -m llm_wiki upgrade --root <kb-root> --dry-run`.", file=sys.stderr)
+    print("Use `python -m src upgrade --root <kb-root> --dry-run`.", file=sys.stderr)
     return 0
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from llm_wiki.core.upgrade import CONFIRM_UPGRADE, upgrade_kb
+from ..core.upgrade import CONFIRM_UPGRADE, upgrade_kb
 
 
 def register_upgrade(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:

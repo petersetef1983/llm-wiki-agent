@@ -34,14 +34,14 @@ Issues = "https://github.com/petersetef1983/llm-wiki-agent/issues"
 mcp = ["mcp>=1.8,<2"]
 
 [project.scripts]
-llm-wiki = "llm_wiki.cli:main"
+llm-wiki = "src.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["llm_wiki*"]
+include = ["src*"]
 
 [tool.setuptools.package-data]
-llm_wiki = ["assets/**/*"]
+src = ["assets/**/*"]
 
 [tool.setuptools.exclude-package-data]
-llm_wiki = ["assets/**/__pycache__/*", "assets/**/*.pyc", "assets/**/*.pyo"]
+src = ["assets/**/__pycache__/*", "assets/**/*.pyc", "assets/**/*.pyo"]

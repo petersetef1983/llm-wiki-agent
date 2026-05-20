@@ -19,6 +19,6 @@ By default `init` enables `codex`, `claude`, `trae`, `opencode`, `openclaw`, and
 ## Local source checkout
 
 ```powershell
-python -m llm_wiki --help
-python -m llm_wiki init --target C:\path\to\my-kb --dry-run
+python -m src --help
+python -m src init --target C:\path\to\my-kb --dry-run
 ```

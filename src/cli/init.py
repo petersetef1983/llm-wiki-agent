@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from llm_wiki.core.bootstrap import CONFIRM_CREATE, init_kb
-from llm_wiki.core.manifest import parse_platforms
+from ..core.bootstrap import CONFIRM_CREATE, init_kb
+from ..core.manifest import parse_platforms
 
 
 def register_init(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:

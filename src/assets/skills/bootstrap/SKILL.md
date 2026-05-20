@@ -37,25 +37,25 @@ Only ignore those directories when their contents are empty or recognized runtim
 2. Run:
 
    ```powershell
-   python -m llm_wiki init --target <target-dir> --dry-run
+   python -m src init --target <target-dir> --dry-run
    ```
 
 3. Review the planned created files and any ignored runtime directories.
 4. Apply only after confirmation:
 
    ```powershell
-   python -m llm_wiki init --target <target-dir> --confirm CREATE-KB
+   python -m src init --target <target-dir> --confirm CREATE-KB
    ```
 
 5. In the newly bootstrapped knowledge base, verify:
 
    ```powershell
-   python -m llm_wiki sync --root <target-dir> --check
+   python -m src sync --root <target-dir> --check
    ```
 
 ## Created Skeleton
 
-The initializer copies packaged assets from `llm_wiki/assets/` into the target directory. The created knowledge base includes:
+The initializer copies packaged assets from `src/assets/` into the target directory. The created knowledge base includes:
 
 - `AGENTS.md`
 - `schema/`
@@ -85,7 +85,7 @@ The initializer copies packaged assets from `llm_wiki/assets/` into the target d
 
 ## Helper
 
-Use `scripts/kb_bootstrap.py` only when an older workflow expects the skill-local helper path. It delegates to `llm_wiki.core.bootstrap`.
+Use `scripts/kb_bootstrap.py` only when an older workflow expects the skill-local helper path. It delegates to `src.core.bootstrap`.
 
 ```powershell
 python .agents/skills/bootstrap/scripts/kb_bootstrap.py create --root <target-dir> --dry-run
@@ -94,6 +94,6 @@ python .agents/skills/bootstrap/scripts/kb_bootstrap.py create --root <target-di
 For asset maintenance, use the package commands:
 
 ```powershell
-python -m llm_wiki upgrade --root <kb-root> --dry-run
-python -m llm_wiki doctor --root <kb-root>
+python -m src upgrade --root <kb-root> --dry-run
+python -m src doctor --root <kb-root>
 ```

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from llm_wiki.adapters import get_adapter
-from llm_wiki.core.mirror import expected_instruction
+from src.adapters import get_adapter
+from src.core.mirror import expected_instruction
 
 
 class TemplateAdapterTests(unittest.TestCase):

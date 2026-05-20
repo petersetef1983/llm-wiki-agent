@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from llm_wiki.mcp.server import run_server
+from ..mcp.server import run_server
 
 
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}

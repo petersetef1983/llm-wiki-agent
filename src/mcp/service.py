@@ -13,14 +13,14 @@ from pathlib import Path, PurePosixPath
 from types import ModuleType
 from typing import Any
 
-from llm_wiki.core.assets import assets_root
-from llm_wiki.core.manifest import (
+from ..core.assets import assets_root
+from ..core.manifest import (
     SUPPORTED_PLATFORMS,
     is_existing_kb_root,
     read_manifest_text,
     validate_manifest,
 )
-from llm_wiki.core.mirror import check_one_platform
+from ..core.mirror import check_one_platform
 
 
 CONFIRM_WRITE = "WRITE-KB"
@@ -397,7 +397,7 @@ class LLMWikiService:
 def _load_query_index_module() -> ModuleType:
     tool_asset = assets_root() / "tools" / "kb_query_index.py"
     with resources.as_file(tool_asset) as path:
-        spec = importlib.util.spec_from_file_location("llm_wiki_mcp_kb_query_index", path)
+        spec = importlib.util.spec_from_file_location("src_mcp_kb_query_index", path)
         if spec is None or spec.loader is None:
             raise ImportError(f"could not load query index helper: {path}")
         module = importlib.util.module_from_spec(spec)

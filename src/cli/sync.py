@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from llm_wiki.core.manifest import parse_platforms
-from llm_wiki.core.mirror import sync_platforms
+from ..core.manifest import parse_platforms
+from ..core.mirror import sync_platforms
 
 
 def register_sync(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:

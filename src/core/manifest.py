@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
-from llm_wiki import __version__
+from .. import __version__
 
 
 SUPPORTED_PLATFORMS = ("codex", "claude", "trae", "opencode", "openclaw", "hermes")
@@ -48,7 +48,7 @@ def expected_manifest_text(platforms: list[str], *, created_at: str | None = Non
         f'created_at: "{timestamp}"',
         "platforms:",
     ]
-    from llm_wiki.adapters import get_adapter
+    from ..adapters import get_adapter
 
     for platform in platforms:
         adapter = get_adapter(platform)
@@ -89,7 +89,7 @@ def validate_manifest(root: Path, platforms: list[str]) -> list[str]:
     for line in required_lines:
         if line not in text:
             issues.append(f"{METADATA_FILE}: missing or stale `{line}`")
-    from llm_wiki.adapters import get_adapter
+    from ..adapters import get_adapter
 
     for platform in platforms:
         if f"  {platform}:" not in text:

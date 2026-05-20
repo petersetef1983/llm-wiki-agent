@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from llm_wiki.core.manifest import CANONICAL_SKILL_ROOT
+from ..core.manifest import CANONICAL_SKILL_ROOT
 
 from .base import PlatformAdapter, RenderContext
 

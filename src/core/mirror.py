@@ -3,8 +3,8 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from llm_wiki.adapters import get_adapter
-from llm_wiki.adapters.base import PlatformAdapter, RenderContext
+from ..adapters import get_adapter
+from ..adapters.base import PlatformAdapter, RenderContext
 
 from .assets import assets_root, diff_trees, write_text
 from .manifest import CANONICAL_SKILL_ROOT, validate_manifest

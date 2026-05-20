@@ -6,10 +6,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from llm_wiki.core.bootstrap import CONFIRM_CREATE, init_kb
-from llm_wiki.core.manifest import SUPPORTED_PLATFORMS, parse_platforms
-from llm_wiki.core.mirror import sync_platforms
-from llm_wiki.core.upgrade import CONFIRM_UPGRADE, upgrade_kb
+from src.core.bootstrap import CONFIRM_CREATE, init_kb
+from src.core.manifest import SUPPORTED_PLATFORMS, parse_platforms
+from src.core.mirror import sync_platforms
+from src.core.upgrade import CONFIRM_UPGRADE, upgrade_kb
 
 
 PLATFORMS = list(SUPPORTED_PLATFORMS)

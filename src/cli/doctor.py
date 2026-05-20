@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from llm_wiki.core.doctor import doctor
-from llm_wiki.core.manifest import parse_platforms
+from ..core.doctor import doctor
+from ..core.manifest import parse_platforms
 
 
 def register_doctor(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:

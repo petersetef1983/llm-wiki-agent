@@ -10,7 +10,7 @@ from pathlib import Path
 
 def add_local_package_root() -> None:
     for parent in Path(__file__).resolve().parents:
-        if (parent / "llm_wiki" / "__init__.py").exists():
+        if (parent / "src" / "__init__.py").exists():
             sys.path.insert(0, str(parent))
             return
 
@@ -26,10 +26,10 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     add_local_package_root()
     try:
-        from llm_wiki.core.manifest import parse_platforms
-        from llm_wiki.core.mirror import sync_platforms
+        from src.core.manifest import parse_platforms
+        from src.core.mirror import sync_platforms
     except ModuleNotFoundError:
-        print("llm_wiki package is required. Install with `pipx install llm-wiki-agent`.", file=sys.stderr)
+        print("src package is required. Install with `pipx install llm-wiki-agent`.", file=sys.stderr)
         return 2
 
     args = parse_args()
