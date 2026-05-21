@@ -44,6 +44,27 @@ Notes:
 - URL transcript fallback depends on available transcript tooling.
 - The artifact is evidence only; the LLM still updates the wiki.
 
+## Requirement Ingest
+
+Use when the source is a product requirement document, PRD, SRS, or similar demand-side specification and you want a structured requirement digest in addition to normal wiki maintenance.
+
+```bash
+llm-wiki ingest inbox/to-be-filed/product-requirements.docx --root . --type requirement --provider openai
+llm-wiki ingest inbox/to-be-filed/product-requirements.docx --root . --type requirement --provider openai --confirm WRITE-KB
+```
+
+Expected write-back target:
+
+- `outputs/requirement-analysis.md`
+
+The requirement analysis should at minimum include:
+
+- functional requirements
+- non-functional constraints
+- technical constraints
+- acceptance criteria
+- key entities
+
 ## Project Reverse Git Analysis
 
 Use Graphify first when a GitHub, GitLab, internal Git service, or local Git repository needs structural graph evidence. Then use `project-reverse` for API registry, configuration, build/deploy, data/storage, reuse scoring, freshness, and diff evidence. `ingest` compiles both evidence layers into durable wiki pages.
@@ -107,6 +128,19 @@ Notes:
   --write-focused-artifacts
 ```
 
+Enable OSS due diligence when needed:
+
+```bash
+<PYTHON_CMD> .agents/skills/project-reverse/scripts/project_reverse_helper.py analyze \
+  --repo https://github.com/iii-hq/iii \
+  --output themes/project/01-iii/outputs/document-intake/project-reverse-analysis.json \
+  --source-anchor themes/project/01-iii/sources/project-reverse-source-anchor.md \
+  --write-focused-artifacts \
+  --open-source \
+  --community-health \
+  --vulnerabilities
+```
+
 Optional ref:
 
 ```bash
@@ -148,6 +182,7 @@ Notes:
 - The LLM must still write durable project wiki pages, API registry, graph links, `outputs/sync-status.md`, and engineering outputs.
 - If a source anchor already exists, timestamp mode writes a sibling anchor rather than overwriting the existing anchor.
 - Diff evidence includes `affected_pages` and `next_update_scope`; update only those durable pages unless review finds wider drift.
+- Hosted OSS metadata and OSV queries are best-effort. Expect warnings for private repos, rate limits, missing tokens, or dependencies without pinned versions.
 - The legacy `extract-git-repo` helper remains available for lightweight snapshots, but full project ingest should use `project-reverse`.
 
 ## Runtime Query And Freshness Support

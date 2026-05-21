@@ -24,17 +24,18 @@ The LLM owns semantic work: synthesis, page selection, contradiction handling, g
 
 1. Classify the material into an existing theme, `shared/`, or `inbox/to-be-filed/`.
 2. Inspect structure with `inventory` only when destination is unclear.
-3. Convert files or URLs with `extract-document` when preprocessing helps; for Git repositories, run Graphify first for structural graph evidence when available, then run `project-reverse` for API/config/reuse/freshness evidence. Treat `extract-git-repo` only as a lightweight fallback.
-4. Read the smallest useful context: `schema/entity-relationship-model.md`, indexes, target `README.md`, `meta.md`, `wiki/overview.md`, and relevant pages.
-5. Update existing durable wiki pages before creating new pages.
-6. Update canonical graph links only when the node is stable enough.
-7. If the material affects software development, architecture, evaluation, tooling, or project planning, update or recommend updates to `engineering-brief.md`, `implementation-guide.md`, `decision-brief.md`, `backlog.md`, `reuse-candidates.md`, `asset-match-brief.md`, or `sync-status.md`.
-8. For Git repositories and requirements documents, decide whether the material creates a reusable technical asset; update `outputs/reuse-candidates.md` first, then promote stable cross-project capabilities to `shared/assets/`.
-9. For new project themes, scan existing `shared/assets/`, `index/technical-assets.md`, and other projects' `outputs/reuse-candidates.md`; when matches are found, update the target project's `outputs/asset-match-brief.md` and record the match rationale.
-10. Refresh local query support when durable pages or frontmatter changed: run `python tools/kb_query_index.py index --root .`; if qmd is installed, run `python tools/kb_search_bridge.py status --root .` and refresh lexical search state with `python tools/kb_search_bridge.py index --root . --kind lexical`. On native Windows without WSL2 qmd, do not run qmd embed/vector/hybrid commands during ingest; if WSL2 qmd is available, `--kind vector` or `--kind all` routes embed through WSL2 CLI.
-11. For project-source ingest, run or refresh source registry/freshness support when relevant: `python tools/kb_source_registry.py init --root .` and `python tools/kb_freshness_check.py check --root . --timeout 60 --git-timeout 30 --write-report outputs/freshness/latest.json`.
-12. Run the post-ingest checklist: wiki pages updated, graph links updated or deferred, outputs updated or deferred, query gaps resolved or recorded.
-13. Record uncertainty, source paths, changed pages, and follow-up gaps.
+3. Convert files or URLs with `extract-document` when preprocessing helps; for Git repositories, run Graphify first for structural graph evidence when available, then run `project-reverse` for API/config/reuse/freshness evidence. When the caller requests open-source due diligence, also pass `--open-source`, `--community-health`, and `--vulnerabilities` to `project-reverse`. Treat `extract-git-repo` only as a lightweight fallback.
+4. If the ingest request specifies `--type requirement`, treat the material as a requirement document instead of a generic note: extract functional requirements, non-functional constraints, technical constraints, acceptance criteria, and key entities, then write the structured result to `outputs/requirement-analysis.md`.
+5. Read the smallest useful context: `schema/entity-relationship-model.md`, indexes, target `README.md`, `meta.md`, `wiki/overview.md`, and relevant pages.
+6. Update existing durable wiki pages before creating new pages.
+7. Update canonical graph links only when the node is stable enough.
+8. If the material affects software development, architecture, evaluation, tooling, or project planning, update or recommend updates to `engineering-brief.md`, `implementation-guide.md`, `decision-brief.md`, `backlog.md`, `reuse-candidates.md`, `asset-match-brief.md`, `requirement-analysis.md`, or `sync-status.md`.
+9. For Git repositories and requirements documents, decide whether the material creates a reusable technical asset; update `outputs/reuse-candidates.md` first, then promote stable cross-project capabilities to `shared/assets/`.
+10. For new project themes, scan existing `shared/assets/`, `index/technical-assets.md`, and other projects' `outputs/reuse-candidates.md`; when matches are found, update the target project's `outputs/asset-match-brief.md` and record the match rationale.
+11. Refresh local query support when durable pages or frontmatter changed: run `python tools/kb_query_index.py index --root .`; if qmd is installed, run `python tools/kb_search_bridge.py status --root .` and refresh lexical search state with `python tools/kb_search_bridge.py index --root . --kind lexical`. On native Windows without WSL2 qmd, do not run qmd embed/vector/hybrid commands during ingest; if WSL2 qmd is available, `--kind vector` or `--kind all` routes embed through WSL2 CLI.
+12. For project-source ingest, run or refresh source registry/freshness support when relevant: `python tools/kb_source_registry.py init --root .` and `python tools/kb_freshness_check.py check --root . --timeout 60 --git-timeout 30 --write-report outputs/freshness/latest.json`.
+13. Run the post-ingest checklist: wiki pages updated, graph links updated or deferred, outputs updated or deferred, query gaps resolved or recorded.
+14. Record uncertainty, source paths, changed pages, and follow-up gaps.
 
 ## Deterministic Helpers
 
@@ -52,7 +53,9 @@ Use `.agents/skills/project-reverse/scripts/project_reverse_helper.py` for Git r
 
 Use `tools/kb_graphify_bridge.py` for Graphify structural graph evidence. Graphify artifacts are routing and relationship evidence only; the LLM must still decide whether each relationship belongs in durable wiki pages or `shared/`.
 
-For full Git project ingest, compile Graphify `graphify-evidence.json` / `graph.json` / `GRAPH_REPORT.md`, `project-reverse-analysis.json`, optional `api-registry.json` / `module-map.json`, and any diff evidence into README/meta, project wiki pages, theme-local concepts, `wiki/reuse-assessment.md`, `outputs/reuse-candidates.md`, engineering outputs, and `outputs/sync-status.md`.
+When `--type requirement` is used, prefer the `schema/templates/requirement-analysis.template.md` structure and ensure `outputs/requirement-analysis.md` is part of the proposed write-back set.
+
+For full Git project ingest, compile Graphify `graphify-evidence.json` / `graph.json` / `GRAPH_REPORT.md`, `project-reverse-analysis.json`, optional `api-registry.json` / `module-map.json`, and any diff evidence into README/meta, project wiki pages, theme-local concepts, `wiki/reuse-assessment.md`, `outputs/reuse-candidates.md`, engineering outputs, and `outputs/sync-status.md`. If present, also compile `open_source_signals`, `license_signals`, `community_health`, and `vulnerability_signals` into durable project notes and risk outputs.
 
 Treat `.query-index/`, `.data-sources/`, qmd local indexes, Graphify runtime/cache files, and `outputs/freshness/latest.*` as runtime support. They can guide ingest and lint, but they do not replace semantic review and must not automatically rewrite durable wiki pages.
 

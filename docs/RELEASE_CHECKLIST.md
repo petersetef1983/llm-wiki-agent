@@ -3,6 +3,9 @@
 1. Run CLI smoke tests:
    - `python -m src --help`
    - `python -m src init --help`
+   - `python -m src ingest --help`
+   - `python -m src query --help`
+   - `python -m src lint --help`
    - `python -m src doctor --root kb`
    - `python -m src sync --root kb --check`
    - `python -m src upgrade --root kb --dry-run`

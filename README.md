@@ -65,6 +65,13 @@ pip install "llm-wiki-agent[mcp]"
 pipx install "llm-wiki-agent[mcp]"
 ```
 
+### With Agent CLI support
+
+```bash
+pip install "llm-wiki-agent[agent]"
+# or use an external agent command with --provider command
+```
+
 ### From source
 
 ```bash
@@ -114,6 +121,26 @@ llm-wiki upgrade --root ./my-kb --dry-run
 llm-wiki upgrade --root ./my-kb --confirm UPGRADE-KB
 ```
 
+### 5. Use agent workflows from the CLI
+
+```bash
+# Answer from existing wiki context
+llm-wiki query "What changed in this project?" --root ./my-kb --provider openai
+
+# Plan an ingest. This is dry-run by default.
+llm-wiki ingest ./notes/new-source.md --root ./my-kb --provider openai
+
+# Ingest a requirement document and request structured requirement analysis output
+llm-wiki ingest ./notes/product-requirements.docx --root ./my-kb --provider openai --type requirement
+
+# Apply only after reviewing proposed changes
+llm-wiki ingest ./notes/new-source.md --root ./my-kb --provider openai --confirm WRITE-KB
+
+# Run deterministic lint, optionally ask the agent to explain findings
+llm-wiki lint --root ./my-kb --summary
+llm-wiki lint --root ./my-kb --fix-plan --provider openai
+```
+
 ## Commands Reference
 
 ### `llm-wiki init`
@@ -131,6 +158,62 @@ llm-wiki init --target <path> [options]
 | `--dry-run` | Print planned actions without writing files |
 | `--confirm CREATE-KB` | Required write confirmation token |
 | `--adopt-existing` | Add agent metadata/platform files to an existing KB |
+
+### `llm-wiki query`
+
+Answer a grounded question from the current knowledge base using an agent provider.
+
+```bash
+llm-wiki query "<question>" --root <path> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--root ROOT` | Knowledge base root directory |
+| `--provider {openai,command}` | Agent provider; falls back to `LLM_WIKI_PROVIDER` |
+| `--model MODEL` | Model for the OpenAI provider; falls back to `LLM_WIKI_MODEL` |
+| `--agent-command CMD` | External command provider; reads JSON stdin and writes JSON stdout |
+| `--top TOP` | Search context limit |
+| `--record --confirm WRITE-KB` | Record the query in `log.md` |
+| `--format {text,json}` | Output format |
+
+### `llm-wiki ingest`
+
+Plan or apply a semantic ingest. The LLM proposes durable wiki changes; the CLI applies them only with confirmation.
+
+```bash
+llm-wiki ingest <source> --root <path> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `source` | Source path, directory, URL, or note to ingest |
+| `--root ROOT` | Knowledge base root directory |
+| `--type {auto,requirement}` | Optional ingest subtype; `requirement` asks the agent to write `outputs/requirement-analysis.md` |
+| `--provider {openai,command}` | Agent provider |
+| `--model MODEL` | Model for the OpenAI provider |
+| `--agent-command CMD` | External command provider |
+| `--confirm WRITE-KB` | Apply proposed changes after review |
+| `--format {text,json}` | Output format |
+
+### `llm-wiki lint`
+
+Run content, graph, and knowledge checks. Without agent flags this wraps the deterministic lint script.
+
+```bash
+llm-wiki lint --root <path> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--root ROOT` | Knowledge base root directory |
+| `--scope {structure,graph,knowledge,all}` | Check scope |
+| `--summary --summary-top N` | Print compact top issues |
+| `--strict` | Exit non-zero on warnings as well as errors |
+| `--explain` | Ask an agent to explain findings |
+| `--fix-plan` | Ask an agent for a safe fix plan |
+| `--confirm WRITE-KB` | Apply proposed fix-plan changes |
+| `--format {text,json}` | Output format |
 
 ### `llm-wiki sync`
 

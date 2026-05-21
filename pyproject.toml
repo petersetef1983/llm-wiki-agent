@@ -32,6 +32,7 @@ Issues = "https://github.com/petersetef1983/llm-wiki-agent/issues"
 
 [project.optional-dependencies]
 mcp = ["mcp>=1.8,<2"]
+agent = ["openai>=1.40,<3"]
 
 [project.scripts]
 llm-wiki = "src.cli:main"

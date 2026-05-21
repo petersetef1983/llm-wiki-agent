@@ -66,6 +66,12 @@
       "prompt": "请 ingest 一个新的开源项目主题，并主动检查它和现有 shared/assets、其他项目 reuse-candidates 的复用关系；如果发现匹配，请更新目标项目 asset-match-brief，不要只生成项目自己的 wiki。",
       "expected_output": "Git repo ingest 在编译 durable wiki 和 reuse-candidates 后，应运行跨项目复用扫描，读取 shared/assets、technical-assets index 和其他 reuse-candidates，并把目标侧匹配写入 asset-match-brief。",
       "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "请把这份 PRD 以 `--type requirement` ingest 到知识库，不要只保留抽取后的文档；需要把功能需求、非功能约束、技术约束、验收标准和关键实体整理成结构化输出。",
+      "expected_output": "当 ingest 明确指定 requirement 类型时，结果应包含 `outputs/requirement-analysis.md`，并按结构化需求分析模板沉淀功能需求、非功能约束、技术约束、验收标准和关键实体，同时保留置信度或不确定项。",
+      "files": []
     }
   ]
 }

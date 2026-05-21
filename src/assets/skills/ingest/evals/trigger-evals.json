@@ -68,6 +68,10 @@
     "should_trigger": true
   },
   {
+    "query": "把这份产品需求文档按 requirement 类型 ingest 进知识库，并生成结构化需求分析输出。",
+    "should_trigger": true
+  },
+  {
     "query": "把这个自建 GitLab 项目做逆向分析后更新到 project 主题，顺便检查 commit 是否过时。",
     "should_trigger": true
   }

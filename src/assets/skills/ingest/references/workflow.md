@@ -29,6 +29,16 @@ Choose the narrowest durable home:
 - Mark confidence as high, medium, or low in the wiki update or report.
 - Low-confidence evidence should usually update `open-questions.md`, not stable shared nodes.
 
+## Requirement Document Ingest
+
+Use this branch when the caller specifies `llm-wiki ingest <source> --type requirement`.
+
+- Treat the material as a requirement document instead of a generic research or project note.
+- Extract at least five structures: functional requirements, non-functional constraints, technical constraints, acceptance criteria, and key entities.
+- Write the structured summary to `outputs/requirement-analysis.md` using `schema/templates/requirement-analysis.template.md`.
+- Keep requirement-level confidence explicit. If the source is ambiguous, move uncertainty into `open-questions.md` or the `Open Questions` section rather than inventing details.
+- If the requirement clearly points to future reuse opportunities, also update or recommend `outputs/asset-match-brief.md` and `outputs/reuse-candidates.md`, but do not block the minimal requirement-analysis output on those later steps.
+
 ## Git Repo Ingest
 
 Use this flow when the source is a software repository and the goal is to understand functionality, architecture, APIs, modules, implementation choices, freshness, or reusable engineering ideas.
@@ -61,6 +71,12 @@ Before writing durable wiki pages, run the `project-reverse` analyzer:
   --write-focused-artifacts
 ```
 
+If the task explicitly asks for OSS due diligence, add:
+
+```bash
+  --open-source --community-health --vulnerabilities
+```
+
 For existing project themes, check freshness against the last analyzed commit. If the repo moved, generate `project-reverse-diff.json` or `sync-diff.json` and update only `affected_pages` unless the user asks for a full rebuild or semantic review finds cross-cutting drift.
 
 ### Project Wiki Targets
@@ -76,10 +92,12 @@ After reading the temporary clone and evidence artifact, update:
 - `wiki/configuration.md`: config files, env vars, feature flags, precedence, secrets-handling notes.
 - `wiki/build-deployment.md`: build scripts, CI, Docker, infra, deployment and runtime requirements.
 - `wiki/technical-notes.md`: design patterns, algorithms, performance concerns, security or operational details.
+- `wiki/technical-notes.md`: design patterns, algorithms, performance concerns, security or operational details, including OSS governance and vulnerability findings when requested.
 - `wiki/reuse-assessment.md`: reusable modules, extraction score, blockers, and suggested boundaries.
 - `wiki/glossary.md`: project terms, component names, protocols, and key abstractions.
 - `wiki/open-questions.md`: unverified behavior, missing runtime validation, complex source areas.
 - `outputs/engineering-brief.md`: engineering lessons, constraints, and risks for future projects.
+- `outputs/engineering-brief.md`: engineering lessons, constraints, OSS/license boundaries, vulnerability risks, and governance notes for future projects.
 - `outputs/implementation-guide.md`: implementation approaches worth reusing, module boundaries, and testing strategy.
 - `outputs/decision-brief.md`: architecture choices, trade-offs, and counterexamples.
 - `outputs/backlog.md`: experiments, reproduction tasks, and deeper reading tasks.
@@ -147,6 +165,7 @@ Update or recommend:
 - `outputs/implementation-guide.md` for module boundaries, interfaces, data flow, and tests.
 - `outputs/decision-brief.md` for options, trade-offs, recommendations, and counterexamples.
 - `outputs/backlog.md` for project seeds, experiments, implementation tasks, and acceptance signals.
+- `outputs/requirement-analysis.md` for structured requirement extraction from requirement documents.
 - `outputs/reuse-candidates.md` for reusable capability candidates from source projects or candidate assets for target projects.
 - `outputs/asset-match-brief.md` for demand-to-asset matching in new projects.
 

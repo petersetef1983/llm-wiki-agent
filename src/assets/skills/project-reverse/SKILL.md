@@ -1,6 +1,6 @@
 ---
 name: project-reverse
-description: Analyze GitHub, GitLab, self-hosted, or local Git repositories into structured reverse-engineering evidence for architecture, modules, APIs, configuration, deployment, data/storage, risks, reuse, and freshness. Use when the agent needs source-level project analysis, API/source-location extraction, repo update checks, or incremental Git diff evidence before LLM Wiki ingest compiles durable pages.
+description: Analyze GitHub, GitLab, self-hosted, or local Git repositories into structured reverse-engineering evidence for architecture, modules, APIs, configuration, deployment, data/storage, risks, reuse, freshness, open-source metadata, community health, and dependency vulnerabilities. Use when the agent needs source-level project analysis, API/source-location extraction, repo update checks, OSS due diligence, or incremental Git diff evidence before LLM Wiki ingest compiles durable pages.
 ---
 
 # Project Reverse
@@ -14,7 +14,7 @@ Produce structured reverse-engineering evidence for software repositories. This 
 Graphify is the preferred structural graph extractor for project relationships, communities, and concept paths. This skill remains responsible for:
 
 - API registry extraction with route/export/command names, parameters, return shapes, source lines, owner modules, and `field_confidence`.
-- Configuration, environment variable, feature flag, secret-signal, build/deploy, CI, data/storage, test, security, and risk evidence.
+- Configuration, environment variable, feature flag, secret-signal, build/deploy, CI, data/storage, test, security, OSS metadata, community-health, vulnerability, and risk evidence.
 - Conservative reuse scoring and extraction recommendations.
 - Freshness checks, changed-area classification, affected durable pages, and incremental diff evidence.
 
@@ -28,6 +28,12 @@ If Graphify artifacts exist at `<theme>/outputs/document-intake/graphify/`, read
 
 ```bash
 python .agents/skills/project-reverse/scripts/project_reverse_helper.py analyze --repo <git-url-or-local-path> --output <theme>/outputs/document-intake/project-reverse-analysis.json --source-anchor <theme>/sources/project-reverse-source-anchor.md --write-focused-artifacts
+```
+
+Optional hosted checks for GitHub or other supported public remotes:
+
+```bash
+python .agents/skills/project-reverse/scripts/project_reverse_helper.py analyze --repo <git-url-or-local-path> --open-source --community-health --vulnerabilities --http-timeout 15
 ```
 
 4. Read only the references needed for the repo shape:
@@ -68,7 +74,7 @@ The analyzer artifact must include:
 - module candidates with paths, responsibilities, entrypoints, dependencies, and test coverage hints
 - API registry entries with kind, name or route, parameters, behavior, return shape, source path, line number, owning module, and confidence
 - API registry entries also include `field_confidence` so missing parameters, request/response shapes, return shapes, or naming-only behavior can be marked without losing the source location
-- configuration, environment variables, build/deploy/CI, tests, data/storage, security, risk, and reuse signals
+- configuration, environment variables, build/deploy/CI, tests, data/storage, security, risk, reuse, OSS metadata, community health, and vulnerability signals
 - optional focused artifacts: `api-registry.json`, `module-map.json`, and diff/sync artifacts when requested
 - warnings for truncation, remote failures, uncertain inference, and unsupported languages
 

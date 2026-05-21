@@ -10,12 +10,15 @@ Use this schema for `project-reverse` evidence artifacts. JSON is preferred for 
 - `freshness`: `current`, `stale`, or `unknown`, plus latest checked commit and check error when available.
 - `inventory`: file counts, extension counts, tree preview, manifests, docs, tests, config, CI, build/deploy, data/storage files.
 - `stack`: languages, package managers, frameworks, libraries, runtime versions, build tools.
-- `license_signals`: license files, manifest license fields, license-related config/check files, and confidence.
+- `open_source_signals`: hosted repository metadata such as public/private signal, stars, forks, topics, archive state, and confidence when `--open-source` is enabled.
+- `license_signals`: license files, manifest license fields, normalized license summary, review-required flag, license-related config/check files, and confidence.
+- `community_health`: community files, CI/governance/security-policy signals, optional hosted activity metadata, score, and confidence when `--community-health` is enabled.
 - `modules`: module candidates with paths, responsibilities, entrypoints, dependencies, test files, reuse score, confidence.
 - `api_registry`: API candidates.
 - `configuration`: config files, environment variables, feature flags, secrets-management signals.
 - `build_deploy`: package scripts, make targets, Docker, compose, CI jobs, infra manifests.
 - `data_storage`: models, schema/migration files, DB/cache/queue/storage signals.
+- `vulnerability_signals`: dependency inventory, OSV query results, severity summary, findings, and confidence when `--vulnerabilities` is enabled.
 - `risks`: technical debt, security, performance, coupling, missing-test, stale-doc, and operational risks.
 - `reuse_assessment`: modules/components with extraction score and recommendation.
 - `diff`: present only for incremental update artifacts.
