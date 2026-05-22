@@ -46,6 +46,7 @@ Do not create duplicate themes, duplicate concept pages, or parallel summaries t
 Before acting, identify the matching mode and read only the needed skill:
 
 - `ingest`: bring new material into durable wiki knowledge. Read `{{ SKILL_ROOT }}/ingest/SKILL.md`.
+- `synthesize`: turn an ingested target `requirement-analysis.md` into asset matches, engineering guidance, implementation plans, and decision briefs. Read `{{ SKILL_ROOT }}/synthesize/SKILL.md`.
 - `query`: answer from existing wiki, graph, outputs, and evidence. Read `{{ SKILL_ROOT }}/query/SKILL.md`.
 - `lint`: audit structure, graph, or knowledge health. Read `{{ SKILL_ROOT }}/lint/SKILL.md`.
 - `reset`: clear the whole knowledge base back to skeleton. Read `{{ SKILL_ROOT }}/reset/SKILL.md`.
@@ -53,7 +54,7 @@ Before acting, identify the matching mode and read only the needed skill:
 
 `project-reverse` is an auxiliary analyzer used by `ingest` for Git repositories; it produces evidence only.
 
-When a task spans modes, prefer this order: `lint` before risky bulk edits, then `ingest`, then `query`.
+When a task spans modes, prefer this order: `lint` before risky bulk edits, then `ingest`, then `synthesize`, then `query`.
 
 ## Safety Rules
 

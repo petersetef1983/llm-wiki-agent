@@ -2,8 +2,6 @@
 
 ## Summary
 
-- Problem or opportunity:
-- Target project or theme:
 - Scope:
 - Audience:
 - Confidence: tentative
@@ -13,38 +11,40 @@
 - Confirmed:
 - Inferred:
 - Tentative:
-- Reuse signal:
+
+## Reuse Strategy
+
+- Candidate asset:
+- Recommended reuse mode: direct | adapt | reference | reject
+- Reuse cost: low | medium | high
+- License or coupling risk:
+- Validation task:
+
+## Technical Options
+
+| Option | Best fit | Trade-off | Evidence | Recommendation |
+| --- | --- | --- | --- | --- |
+|  |  |  |  |  |
 
 ## Constraints
 
 - Architecture:
-- Data and state:
-- Integration and dependencies:
-- Operations and security:
-- Evaluation and rollout:
-
-## Candidate Assets
-
-| Asset | Source | Fit | Adaptation cost | Main risk |
-| --- | --- | --- | --- | --- |
-| `shared/assets/<asset-slug>` | <project-or-theme> | partial | medium | <risk> |
+- Data:
+- Operations:
+- Evaluation:
 
 ## Risks
 
 - Risk:
-- Trigger:
 - Mitigation:
-- Owner:
 
 ## Recommended Next Actions
 
 - Action:
-- Priority:
 - Owner:
 - Acceptance signal:
 
 ## Sources
 
 - Wiki:
-- Shared assets:
 - Evidence:

@@ -211,6 +211,35 @@ class LLMWikiService:
             ],
         }
 
+    def synthesize(self, *, target_theme: str, top: int = 20, search_mode: str = "auto", confirm: str = "") -> dict[str, Any]:
+        if not target_theme.strip():
+            return {"status": "error", "error": "target_theme is required"}
+        top = _clamp_int(top, 1, MAX_LIMIT)
+        try:
+            helper = _load_synthesize_helper(self.root)
+            pipeline = helper.build_synthesis_pipeline(self.root, target_theme, top=top, search_mode=search_mode)
+        except Exception as exc:  # noqa: BLE001 - MCP tools should return structured errors.
+            return {"status": "error", "error": str(exc), "target_theme": target_theme}
+
+        outputs = pipeline.get("generated_outputs") or {}
+        result: dict[str, Any] = {
+            "status": "ok",
+            "mode": "dry-run",
+            "target_theme": pipeline.get("target_theme"),
+            "pipeline": pipeline,
+            "proposed_changes": outputs.get("proposed_changes", []),
+            "wikilink_validation": outputs.get("wikilink_validation"),
+        }
+        if not confirm:
+            return result
+        write_check = self._write_check(confirm)
+        if write_check:
+            result.update(write_check)
+            return result
+        result["apply"] = helper.apply_generated_outputs(self.root, outputs, confirm=confirm)
+        result["mode"] = "applied"
+        return result
+
     def record_query(
         self,
         *,
@@ -403,6 +432,23 @@ def _load_query_index_module() -> ModuleType:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module
+
+
+def _load_synthesize_helper(root: Path) -> ModuleType:
+    candidate = root / ".agents" / "skills" / "synthesize" / "scripts" / "kb_synthesize_helper.py"
+    if not candidate.exists():
+        candidate = assets_root() / "skills" / "synthesize" / "scripts" / "kb_synthesize_helper.py"
+    module_name = "src_mcp_kb_synthesize_helper"
+    existing = sys.modules.get(module_name)
+    if isinstance(existing, ModuleType):
+        return existing
+    spec = importlib.util.spec_from_file_location(module_name, candidate)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"could not load synthesize helper: {candidate}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def _run_search_bridge_script(root: Path, script: Path, command_args: list[str]) -> dict[str, Any]:

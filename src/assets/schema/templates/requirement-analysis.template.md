@@ -3,40 +3,54 @@
 ## Summary
 
 - Source:
+- Target theme:
 - Scope:
 - Confidence: tentative
 
+## Requirement Items
+
+| ID | Type | Requirement | Priority | Confidence | Evidence | Related modules/entities |
+| --- | --- | --- | --- | --- | --- | --- |
+| REQ-001 | functional |  | medium | tentative |  |  |
+
 ## Functional Requirements
 
-- ID:
+- ID: REQ-001
 - Requirement:
-- Priority:
+- Priority: medium
 - Description:
 - Evidence:
-- Confidence:
+- Confidence: tentative
+- Related modules/entities:
 
 ## Non-Functional Constraints
 
+- ID: NFR-001
 - Constraint:
 - Category:
 - Target or threshold:
 - Evidence:
-- Confidence:
+- Confidence: tentative
+- Related modules/entities:
 
 ## Technical Constraints
 
+- ID: TECH-001
 - Constraint:
 - Impacted area:
 - Reason:
 - Evidence:
-- Confidence:
+- Confidence: tentative
+- Related modules/entities:
 
 ## Acceptance Criteria
 
+- ID: AC-001
 - Criterion:
 - Related requirement:
 - Verification approach:
-- Confidence:
+- Evidence:
+- Confidence: tentative
 
 ## Key Entities
 
@@ -44,6 +58,7 @@
 - Role:
 - Relationships:
 - Evidence:
+- Confidence: tentative
 
 ## Open Questions
 

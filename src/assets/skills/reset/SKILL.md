@@ -41,7 +41,7 @@ Recreate:
 - Empty theme category directories.
 - Stable shared category directories with minimal `README.md` placeholders.
 - Minimal `index/home.md`, `index/themes.md`, `index/recent-updates.md`, and `index/cross-theme-map.md`.
-- Empty `inbox/to-be-filed/`.
+- Empty inbox staging directories: `to-be-filed/`, `review/`, `requirements/`, `papers/`, `articles/`, `images/`, `videos/`, `audio/`, and `source-code/`.
 
 ## Workflow
 

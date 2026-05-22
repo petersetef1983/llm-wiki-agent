@@ -24,6 +24,13 @@ def parse_args() -> argparse.Namespace:
     inventory = subparsers.add_parser("inventory", parents=[common], help="Summarize themes and inbox files")
     inventory.add_argument("--format", choices=["text", "json"], default="text")
 
+    classify_inbox_cmd = subparsers.add_parser(
+        "classify-inbox",
+        parents=[common],
+        help="Read-only classify inbox items into routing suggestions",
+    )
+    classify_inbox_cmd.add_argument("--format", choices=["text", "json"], default="text")
+
     scan_reuse_cmd = subparsers.add_parser(
         "scan-reuse",
         parents=[common],
@@ -54,6 +61,8 @@ def parse_args() -> argparse.Namespace:
     extract_document_cmd = subparsers.add_parser("extract-document", parents=[common], help="Convert a source file or URL into a markdown evidence artifact")
     extract_document_cmd.add_argument("--input", required=True, help="Source path or URL")
     extract_document_cmd.add_argument("--output", help="Optional output file path")
+    extract_document_cmd.add_argument("--type", choices=["auto", "requirement"], default="auto", help="Semantic extraction target. Use requirement to emit requirement-analysis.md.")
+    extract_document_cmd.add_argument("--target-theme", default="", help="Optional target theme for requirement-analysis output.")
     extract_document_cmd.add_argument("--format", choices=["json", "markdown"], default="json")
     extract_document_cmd.add_argument("--max-chars", type=int, default=12000, help="Maximum characters to emit in the main text payload")
     extract_document_cmd.add_argument("--max-preview-rows", type=int, default=12, help="Maximum preview rows per worksheet for XLSX fallback output")
@@ -82,12 +91,14 @@ def main() -> int:
         if args.command == "inventory":
             themes = collect_theme_summaries(root)
             inbox_files = collect_inbox_files(root)
+            inbox_classification = classify_inbox(root)
             recent_updates = read_recent_updates(root)
             payload = {
                 "root": str(root),
                 "themes": [asdict(theme) for theme in themes],
                 "next_theme_numbers": {category: next_theme_number(root, category) for category in THEME_CATEGORIES},
                 "inbox": inbox_files,
+                "inbox_classification": inbox_classification,
                 "recent_updates": recent_updates,
             }
             if args.format == "json":
@@ -100,6 +111,14 @@ def main() -> int:
                 f"生成知识库结构快照，识别到 {len(themes)} 个主题。",
                 details=[f"inbox_buckets={len(inbox_files)}"],
             )
+            return 0
+
+        if args.command == "classify-inbox":
+            payload = classify_inbox(root)
+            if args.format == "json":
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                print_inbox_classification_text(payload)
             return 0
 
         if args.command == "append-update":
@@ -181,7 +200,17 @@ def main() -> int:
 
         if args.command == "extract-document":
             source_input = args.input
-            payload = extract_document(source_input, args.max_chars, args.max_preview_rows, args.max_preview_cols)
+            if args.type == "requirement":
+                payload = extract_requirement_document(
+                    source_input,
+                    root=root,
+                    target_theme=args.target_theme,
+                    max_chars=args.max_chars,
+                    max_rows=args.max_preview_rows,
+                    max_cols=args.max_preview_cols,
+                )
+            else:
+                payload = extract_document(source_input, args.max_chars, args.max_preview_rows, args.max_preview_cols)
             output_path = Path(args.output) if args.output else None
             if output_path is not None and not output_path.is_absolute():
                 output_path = Path.cwd() / output_path
@@ -191,7 +220,8 @@ def main() -> int:
                 "extract-document",
                 f"抽取文档 `{payload['file_name']}`。",
                 details=[
-                    f"type={payload['file_type']}",
+                    f"type={args.type}",
+                    f"file_type={payload['file_type']}",
                     f"parser={payload['parser']}",
                     f"confidence={payload['confidence']}",
                     f"output={output_path if output_path is not None else 'stdout'}",
@@ -242,3 +272,7 @@ def main() -> int:
         raise
 
     return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -12,6 +12,17 @@ from pathlib import Path
 CONFIRM_TOKEN = "RESET-KB"
 THEME_CATEGORIES = ("general", "project", "research")
 SHARED_CATEGORIES = ("entities", "concepts", "patterns", "methods", "tools", "glossary")
+INBOX_DIRS = (
+    "to-be-filed",
+    "review",
+    "requirements",
+    "papers",
+    "articles",
+    "images",
+    "videos",
+    "audio",
+    "source-code",
+)
 INDEX_FILES = {
     "home.md": """# Knowledge Base Home
 
@@ -160,7 +171,8 @@ def reset_inbox(root: Path, *, dry_run: bool, actions: list[str]) -> None:
     if inbox_root.exists():
         for child in sorted(inbox_root.iterdir()):
             remove_path(ensure_within_root(root, child), dry_run=dry_run, actions=actions)
-    make_dir(inbox_root / "to-be-filed", dry_run=dry_run, actions=actions)
+    for rel in INBOX_DIRS:
+        make_dir(ensure_within_root(root, inbox_root / rel), dry_run=dry_run, actions=actions)
 
 
 def reset_logs(root: Path, *, dry_run: bool, actions: list[str]) -> None:

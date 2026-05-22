@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .assets import assets_root, copy_traversable_tree, write_text
+from .inbox import INBOX_STAGING_DIRS
 from .manifest import CANONICAL_SKILL_ROOT, expected_manifest_text, is_existing_kb_root
 from .mirror import sync_one_platform
 
@@ -35,7 +36,7 @@ SKELETON_DIRS = (
     Path("themes/general"),
     Path("themes/project"),
     Path("themes/research"),
-    Path("inbox/to-be-filed"),
+    *INBOX_STAGING_DIRS,
 )
 
 

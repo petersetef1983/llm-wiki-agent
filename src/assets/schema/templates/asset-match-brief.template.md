@@ -2,37 +2,38 @@
 
 ## Summary
 
-- Target project or requirement:
-- Matching scope:
+- Target project:
+- Requirement analysis:
+- Source asset catalog:
 - Confidence: tentative
-
-## Demand Snapshot
-
-- Functional need:
-- Non-functional constraints:
-- Tech stack expectations:
-- License or governance boundary:
 
 ## Candidate Matches
 
-| Asset | Source | Functional fit | Stack fit | Reuse level | Adaptation cost | Main risk | Validation task |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `shared/assets/<asset-slug>` | <project-or-theme> | partial | compatible | adapt | medium | <risk> | <task> |
+| Requirement ID | Requirement area | Candidate asset | Source project | Reuse level | Reuse cost | License status | Why it fits | Main risk | Validation task |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| REQ-001 |  |  |  | reference | medium | review_required |  |  |  |
 
-## Rejected Or Deferred Matches
+## Recommended Use
 
-| Candidate | Reason | Revisit when |
-| --- | --- | --- |
-| <candidate> | <reason> | <condition> |
+- Recommendation:
+- Evidence:
+- Confidence:
 
-## Recommendation
+## Rejected Or Deferred Reuse
 
-- Preferred path:
-- Why:
-- Stop conditions:
+| Candidate | Decision | Reason | Revisit when |
+| --- | --- | --- | --- |
+|  | reject |  |  |
+
+## Validation Tasks
+
+- Task:
+- Acceptance signal:
+- Owner:
 
 ## Sources
 
-- Wiki:
-- Shared assets:
+- Requirement analysis:
+- Candidate assets:
+- Source projects:
 - Evidence:

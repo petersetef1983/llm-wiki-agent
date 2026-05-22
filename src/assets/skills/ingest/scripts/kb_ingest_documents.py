@@ -476,9 +476,334 @@ def extract_document(source: Path | str, max_chars: int, max_rows: int, max_cols
     }
 
 
+def extract_requirement_document(
+    source: Path | str,
+    *,
+    root: Path | None = None,
+    target_theme: str = "",
+    max_chars: int = 12000,
+    max_rows: int = 12,
+    max_cols: int = 8,
+) -> dict[str, Any]:
+    """Extract a deterministic requirement-analysis draft from a source document."""
+    try:
+        payload = extract_document(source, max_chars, max_rows, max_cols)
+        text = str(payload.get("markdown") or payload.get("text") or "")
+        parser = payload.get("parser", "unknown")
+        warnings = list(payload.get("warnings", []))
+        confidence = payload.get("confidence", "medium")
+    except Exception as exc:  # noqa: BLE001 - plain text fallback keeps requirement ingest deterministic.
+        resolved_source = resolve_ingest_source(source)
+        text = read_requirement_source_text(resolved_source, max_chars)
+        payload = {
+            "source_path": resolved_source.locator,
+            "file_name": resolved_source.display_name,
+            "file_type": resolved_source.file_type,
+            "size_bytes": resolved_source.size_bytes,
+            "extracted_at": datetime.now().isoformat(timespec="seconds"),
+            "parser": "plain_text_fallback",
+            "confidence": "medium" if text else "low",
+            "metadata": {"fallback_reason": str(exc)},
+            "warnings": [f"Document converter failed; used plain text fallback: {exc}"],
+            "text": text,
+            "markdown": text,
+            "text_excerpt": truncate_text(normalize_text(text) if text else PLACEHOLDER_TEXT, min(max_chars, 2500)),
+            "sections": [],
+        }
+        parser = "plain_text_fallback"
+        warnings = list(payload["warnings"])
+        confidence = payload["confidence"]
+
+    source_ref = requirement_source_ref(root, payload.get("source_path", str(source)))
+    items = infer_requirement_items(text, source_ref=source_ref)
+    markdown = render_requirement_analysis_markdown(
+        source=source_ref,
+        target_theme=target_theme,
+        items=items,
+        extractor_confidence=str(confidence),
+    )
+    return {
+        **payload,
+        "artifact_kind": "requirement-analysis",
+        "content_kind": "requirement",
+        "parser": parser,
+        "confidence": confidence,
+        "warnings": warnings,
+        "target_theme": target_theme,
+        "requirement_items": items,
+        "markdown": markdown,
+        "text": markdown,
+    }
+
+
+def read_requirement_source_text(source: IngestSource, max_chars: int) -> str:
+    if source.local_path is None or source.file_type.lower() not in {"md", "mdx", "txt", "rst", "adoc", "csv", "tsv", "json", "yaml", "yml"}:
+        return ""
+    try:
+        return read_text(source.local_path)[:max_chars]
+    except OSError:
+        return ""
+
+
+def requirement_source_ref(root: Path | None, source_path: Any) -> str:
+    text = str(source_path or "")
+    if not root:
+        return text
+    try:
+        path = Path(text)
+        if path.is_absolute():
+            return path.resolve().relative_to(root.resolve()).as_posix()
+    except (OSError, ValueError):
+        pass
+    return text.replace("\\", "/")
+
+
+def infer_requirement_items(text: str, *, source_ref: str) -> dict[str, list[dict[str, Any]]]:
+    normalized = normalize_markdown_text(text)
+    sections: dict[str, list[dict[str, Any]]] = {
+        "functional": [],
+        "non_functional": [],
+        "technical": [],
+        "acceptance": [],
+        "entities": [],
+        "open_questions": [],
+    }
+    current = "functional"
+    counters = {"functional": 0, "non_functional": 0, "technical": 0, "acceptance": 0, "open_questions": 0}
+    for line_no, line in enumerate(normalized.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        heading = normalize_requirement_heading(stripped)
+        if any(term in heading for term in ("non-functional", "non functional", "nfr", "非功能")):
+            current = "non_functional"
+            continue
+        if any(term in heading for term in ("technical", "constraints", "constraint", "技术约束", "技术限制")):
+            current = "technical"
+            continue
+        if any(term in heading for term in ("acceptance", "验收标准", "验收条件")):
+            current = "acceptance"
+            continue
+        if any(term in heading for term in ("open question", "questions", "待确认", "问题")):
+            current = "open_questions"
+            continue
+        if any(term in heading for term in ("functional", "requirements", "功能需求", "需求列表")):
+            current = "functional"
+            continue
+
+        bullet = requirement_line_text(stripped)
+        if not bullet:
+            if current == "functional" and looks_like_requirement(stripped):
+                bullet = stripped
+            else:
+                continue
+        if len(bullet) < 4:
+            continue
+        counters[current] = counters.get(current, 0) + 1
+        item_id = requirement_id(current, counters[current])
+        confidence = "high" if current in {"functional", "non_functional", "technical", "acceptance"} else "medium"
+        item = {
+            "id": item_id,
+            "type": current.replace("_", "-"),
+            "text": bullet,
+            "priority": priority_for_requirement(bullet),
+            "confidence": confidence,
+            "evidence": f"{source_ref}#L{line_no}" if source_ref else f"L{line_no}",
+            "related": infer_related_entities(bullet),
+        }
+        if current == "open_questions":
+            sections["open_questions"].append(item)
+        else:
+            sections[current].append(item)
+
+    if not any(sections[key] for key in ("functional", "non_functional", "technical", "acceptance")):
+        sections["open_questions"].append(
+            {
+                "id": "Q-001",
+                "type": "open-question",
+                "text": "No deterministic requirements were extracted; review the source manually.",
+                "priority": "medium",
+                "confidence": "low",
+                "evidence": source_ref,
+                "related": "",
+            }
+        )
+    return sections
+
+
+def normalize_requirement_heading(line: str) -> str:
+    heading = line.strip().lower()
+    heading = re.sub(r"^#+\s*", "", heading)
+    heading = re.sub(r"^\d+(?:\.\d+)*(?:[.)、])?\s*", "", heading)
+    return heading.strip("#:： -")
+
+
+def requirement_line_text(line: str) -> str:
+    table_cells = split_markdown_requirement_row(line)
+    if table_cells:
+        return " - ".join(cell for cell in table_cells if cell and cell.lower() not in {"id", "requirement", "priority", "confidence"})
+    match = re.match(r"^(?:[-*]|\d+[.)]|\[[ xX]\])\s+(.*)$", line)
+    if match:
+        return match.group(1).strip()
+    return ""
+
+
+def split_markdown_requirement_row(line: str) -> list[str]:
+    if not line.startswith("|") or "---" in line:
+        return []
+    cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+    if len(cells) < 2 or cells[0].lower() in {"id", "编号"}:
+        return []
+    return cells
+
+
+def looks_like_requirement(line: str) -> bool:
+    lowered = line.lower()
+    return any(
+        term in lowered
+        for term in (
+            "must",
+            "should",
+            "shall",
+            "user can",
+            "system can",
+            "需要",
+            "必须",
+            "应当",
+            "支持",
+            "用户可以",
+            "系统可以",
+        )
+    )
+
+
+def requirement_id(kind: str, idx: int) -> str:
+    prefix = {
+        "functional": "REQ",
+        "non_functional": "NFR",
+        "technical": "TECH",
+        "acceptance": "AC",
+        "open_questions": "Q",
+    }.get(kind, "REQ")
+    return f"{prefix}-{idx:03d}"
+
+
+def priority_for_requirement(text: str) -> str:
+    lowered = text.lower()
+    if any(term in lowered for term in ("p0", "must", "shall", "critical", "blocker", "必须", "强制", "关键")):
+        return "high"
+    if any(term in lowered for term in ("p2", "could", "optional", "nice", "可选", "建议")):
+        return "low"
+    return "medium"
+
+
+def infer_related_entities(text: str) -> str:
+    words = re.findall(r"[A-Za-z][A-Za-z0-9_-]{2,}|[\u4e00-\u9fff]{2,}", text)
+    stop = {"the", "and", "for", "with", "user", "system", "shall", "must", "should", "用户", "系统", "需要", "必须", "支持"}
+    picked = []
+    for word in words:
+        if word.lower() in stop:
+            continue
+        picked.append(word)
+        if len(picked) >= 4:
+            break
+    return ", ".join(picked)
+
+
+def render_requirement_analysis_markdown(
+    *,
+    source: str,
+    target_theme: str,
+    items: dict[str, list[dict[str, Any]]],
+    extractor_confidence: str,
+) -> str:
+    functional = items.get("functional", [])
+    non_functional = items.get("non_functional", [])
+    technical = items.get("technical", [])
+    acceptance = items.get("acceptance", [])
+    open_questions = items.get("open_questions", [])
+    lines = [
+        "# Requirement Analysis",
+        "",
+        "## Summary",
+        "",
+        f"- Source: {source}",
+        f"- Target theme: {target_theme or 'unknown'}",
+        "- Scope: extracted requirement draft",
+        f"- Confidence: {extractor_confidence or 'tentative'}",
+        "",
+        "## Requirement Items",
+        "",
+        "| ID | Type | Requirement | Priority | Confidence | Evidence | Related modules/entities |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for item in [*functional, *non_functional, *technical, *acceptance]:
+        lines.append(
+            "| {id} | {type} | {text} | {priority} | {confidence} | {evidence} | {related} |".format(
+                id=item["id"],
+                type=item["type"],
+                text=table_escape(item["text"]),
+                priority=item["priority"],
+                confidence=item["confidence"],
+                evidence=table_escape(item["evidence"]),
+                related=table_escape(item["related"]),
+            )
+        )
+    if not any([functional, non_functional, technical, acceptance]):
+        lines.append("| REQ-001 | functional | Review source manually. | medium | low |  |  |")
+
+    lines.extend(["", "## Functional Requirements", ""])
+    append_requirement_detail(lines, functional, "Requirement")
+    lines.extend(["", "## Non-Functional Constraints", ""])
+    append_requirement_detail(lines, non_functional, "Constraint")
+    lines.extend(["", "## Technical Constraints", ""])
+    append_requirement_detail(lines, technical, "Constraint")
+    lines.extend(["", "## Acceptance Criteria", ""])
+    append_requirement_detail(lines, acceptance, "Criterion")
+    lines.extend(["", "## Key Entities", ""])
+    entities = sorted({entity.strip() for item in [*functional, *non_functional, *technical] for entity in str(item.get("related", "")).split(",") if entity.strip()})
+    if entities:
+        for entity in entities[:20]:
+            lines.extend([f"- Entity: {entity}", "  - Role: inferred from requirement text", f"  - Evidence: {source}", "  - Confidence: tentative"])
+    else:
+        lines.append("- Entity: ")
+    lines.extend(["", "## Open Questions", ""])
+    if open_questions:
+        for item in open_questions:
+            lines.extend([f"- Question: {item['text']}", "  - Blocking impact: unknown", f"  - Next step: verify evidence `{item['evidence']}`"])
+    else:
+        lines.append("- Question: ")
+    lines.extend(["", "## Sources", "", f"- Evidence: {source}"])
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def append_requirement_detail(lines: list[str], items: list[dict[str, Any]], label: str) -> None:
+    if not items:
+        lines.append(f"- ID: {label[:3].upper()}-001")
+        lines.append(f"- {label}:")
+        lines.append("- Priority: medium")
+        lines.append("- Evidence:")
+        lines.append("- Confidence: tentative")
+        lines.append("- Related modules/entities:")
+        return
+    for item in items:
+        lines.append(f"- ID: {item['id']}")
+        lines.append(f"  - {label}: {item['text']}")
+        lines.append(f"  - Priority: {item['priority']}")
+        lines.append(f"  - Evidence: {item['evidence']}")
+        lines.append(f"  - Confidence: {item['confidence']}")
+        lines.append(f"  - Related modules/entities: {item['related']}")
+
+
+def table_escape(value: str) -> str:
+    return str(value).replace("|", "\\|").replace("\n", " ")
+
+
 def render_payload_content(payload: dict[str, Any], output_format: str) -> str:
     if output_format == "json":
         return json.dumps(payload, ensure_ascii=False, indent=2)
+    if payload.get("artifact_kind") == "requirement-analysis":
+        return str(payload.get("markdown") or payload.get("text") or "")
     return render_markdown(payload)
 
 

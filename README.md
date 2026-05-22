@@ -37,6 +37,8 @@ my-knowledge-base/
 └── outputs/                  # Generated outputs
 ```
 
+`inbox/` is a staging area. New knowledge bases include lightweight buckets such as `requirements/`, `papers/`, `articles/`, `images/`, `videos/`, `audio/`, and `source-code/`; durable knowledge still belongs under `themes/` or `shared/`.
+
 ## Installation
 
 ### pip (Recommended)
@@ -130,11 +132,14 @@ llm-wiki query "What changed in this project?" --root ./my-kb --provider openai
 # Plan an ingest. This is dry-run by default.
 llm-wiki ingest ./notes/new-source.md --root ./my-kb --provider openai
 
-# Ingest a requirement document and request structured requirement analysis output
-llm-wiki ingest ./notes/product-requirements.docx --root ./my-kb --provider openai --type requirement
+# Compile a requirement document into the target project theme.
+llm-wiki ingest ./requirements/prd.md --root ./my-kb --type requirement --target-theme themes/project/00-product --provider openai
 
 # Apply only after reviewing proposed changes
 llm-wiki ingest ./notes/new-source.md --root ./my-kb --provider openai --confirm WRITE-KB
+
+# Generate demand-side engineering outputs from requirement analysis and reusable assets.
+llm-wiki synthesize --root ./my-kb --target-theme themes/project/00-product --provider openai
 
 # Run deterministic lint, optionally ask the agent to explain findings
 llm-wiki lint --root ./my-kb --summary
@@ -189,11 +194,34 @@ llm-wiki ingest <source> --root <path> [options]
 |--------|-------------|
 | `source` | Source path, directory, URL, or note to ingest |
 | `--root ROOT` | Knowledge base root directory |
-| `--type {auto,requirement}` | Optional ingest subtype; `requirement` asks the agent to write `outputs/requirement-analysis.md` |
+| `--type {auto,requirement}` | Use `requirement` to produce structured requirement analysis |
+| `--target-theme THEME` | Prefer theme-local outputs such as `themes/project/NN-name/outputs/requirement-analysis.md` |
 | `--provider {openai,command}` | Agent provider |
 | `--model MODEL` | Model for the OpenAI provider |
 | `--agent-command CMD` | External command provider |
+| `--open-source` | Ask Git ingest to collect open-source reuse signals |
+| `--community-health` | Ask Git ingest to collect activity/docs/CI/test signals |
+| `--vulnerabilities` | Ask Git ingest for best-effort vulnerability signals; failures are non-blocking |
 | `--confirm WRITE-KB` | Apply proposed changes after review |
+| `--format {text,json}` | Output format |
+
+### `llm-wiki synthesize`
+
+Generate demand-driven engineering outputs for a target project from `requirement-analysis.md`, historical projects, open-source evidence, shared assets, and reuse candidates. The CLI includes a deterministic synthesis pipeline in agent context: `match-assets`, `check-license`, `assess-reuse`, and `generate-outputs`. Asset matching uses keyword overlap plus best-effort BM25/qmd, frontmatter filters, and read-only Graphify hints when those bridges are available.
+
+```bash
+llm-wiki synthesize --root <path> --target-theme themes/project/NN-name [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--root ROOT` | Knowledge base root directory |
+| `--target-theme THEME` | Target project theme |
+| `--search-mode {auto,keyword,multi}` | Asset matching route; `auto` uses multi-route search with keyword fallback |
+| `--provider {openai,command}` | Agent provider |
+| `--model MODEL` | Model for the OpenAI provider |
+| `--agent-command CMD` | External command provider |
+| `--confirm WRITE-KB` | Apply proposed synthesis outputs after review |
 | `--format {text,json}` | Output format |
 
 ### `llm-wiki lint`
@@ -304,7 +332,7 @@ MCP resources:
 
 ## Skills
 
-The knowledge base includes 6 built-in skills (located in `.agents/skills/`):
+The knowledge base includes 7 built-in skills (located in `.agents/skills/`):
 
 | Skill | Description |
 |-------|-------------|
@@ -314,6 +342,7 @@ The knowledge base includes 6 built-in skills (located in `.agents/skills/`):
 | **reset** | Reset knowledge base state |
 | **bootstrap** | Self-initialization and setup |
 | **project-reverse** | Reverse-engineer and document existing projects |
+| **synthesize** | Match new requirements against historical/open-source assets and generate engineering outputs |
 
 ## MCP Client Configuration
 

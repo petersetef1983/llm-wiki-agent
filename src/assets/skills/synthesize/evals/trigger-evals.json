@@ -1,0 +1,16 @@
+{
+  "schema_version": "llm-wiki-trigger-evals.v1",
+  "skill": "synthesize",
+  "triggers": [
+    {
+      "id": "new-requirement-cross-project-reuse",
+      "utterance": "I have ingested a new project requirement. Use historical projects and open-source evidence to generate an implementation plan.",
+      "expected_skill": "synthesize"
+    },
+    {
+      "id": "asset-match-from-requirements",
+      "utterance": "Match this requirement-analysis.md to reusable assets and produce an engineering brief.",
+      "expected_skill": "synthesize"
+    }
+  ]
+}

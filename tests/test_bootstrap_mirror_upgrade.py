@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from src.core.bootstrap import CONFIRM_CREATE, init_kb
+from src.core.inbox import INBOX_STAGING_DIRS
 from src.core.manifest import SUPPORTED_PLATFORMS, parse_platforms
 from src.core.mirror import sync_platforms
 from src.core.upgrade import CONFIRM_UPGRADE, upgrade_kb
@@ -62,6 +63,8 @@ class BootstrapMirrorUpgradeTests(unittest.TestCase):
             self.assertIn('      - ".openclaw/**"', (root / "qmd.yml").read_text(encoding="utf-8"))
             self.assertIn('      - ".hermes/**"', (root / "qmd.yml").read_text(encoding="utf-8"))
             self.assertFalse((root / ".agents/skills/bootstrap/assets/skeleton/AGENTS.md").exists())
+            self._assert_inbox_staging_dirs(root)
+            self.assertFalse((root / "inbox" / "media").exists())
 
     def test_init_can_select_only_opencode(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -121,6 +124,24 @@ class BootstrapMirrorUpgradeTests(unittest.TestCase):
             self.assertIn('      - ".openclaw/**"', qmd.read_text(encoding="utf-8"))
             self.assertIn('      - ".hermes/**"', qmd.read_text(encoding="utf-8"))
 
+    def test_upgrade_adds_flat_inbox_dirs_and_preserves_legacy_media(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._init_temp_kb(Path(tmp))
+            for rel in ["inbox/images", "inbox/videos", "inbox/audio"]:
+                (root / rel).rmdir()
+            legacy = root / "inbox" / "media" / "images" / "legacy.png"
+            legacy.parent.mkdir(parents=True)
+            legacy.write_bytes(b"\x89PNG\r\n")
+
+            dry_output = self._capture(lambda: upgrade_kb(root, dry_run=True, confirm="", force_conflicts=False))
+            self.assertIn("upgrade inbox staging dirs", dry_output)
+            self.assertIn("mkdir:inbox/images", dry_output)
+            self.assertFalse((root / "inbox" / "images").exists())
+
+            self.assertEqual(upgrade_kb(root, dry_run=False, confirm=CONFIRM_UPGRADE, force_conflicts=True), 0)
+            self._assert_inbox_staging_dirs(root)
+            self.assertTrue(legacy.exists())
+
     def test_upgrade_blocks_user_modified_skills_without_force(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = self._init_temp_kb(Path(tmp))
@@ -141,6 +162,10 @@ class BootstrapMirrorUpgradeTests(unittest.TestCase):
         )
         self.assertEqual(code, 0)
         return root
+
+    def _assert_inbox_staging_dirs(self, root: Path) -> None:
+        for rel in INBOX_STAGING_DIRS:
+            self.assertTrue((root / rel).is_dir(), rel.as_posix())
 
     def _capture(self, fn) -> str:  # type: ignore[no-untyped-def]
         out = io.StringIO()

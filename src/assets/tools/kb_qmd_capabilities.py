@@ -469,4 +469,11 @@ def detect_qmd_capability(root: Path) -> dict[str, Any]:
         "wsl_available": bool(wsl.get("available")),
         "wsl_executable_available": bool(wsl.get("wsl_available")),
         "wsl_root": wsl.get("wsl_root"),
+        "workflow_capabilities": [
+            "query.search",
+            "synthesize.match-assets",
+            "synthesize.check-license",
+            "synthesize.assess-reuse",
+            "synthesize.generate-outputs",
+        ],
     }

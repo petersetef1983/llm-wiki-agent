@@ -8,7 +8,7 @@ Use this workflow to turn a repository into structured evidence for later LLM Wi
 2. Map top-level directories into likely subsystems: runtime, SDK, CLI, API, data, console/UI, docs, infra, tests, examples.
 3. Extract stack signals from manifests and lockfiles.
 4. Record license, version, branch, commit, release hints, and maturity signals.
-5. When the caller requests OSS due diligence, also query hosted metadata for public/private state, archive/fork status, stars/forks/watchers, topics, and recent activity.
+5. For open-source reuse, capture license risk labels, dependency inventory, local activity, CI/test/docs health, and best-effort vulnerability status.
 
 ## Phase 2: Architecture And Modules
 
@@ -56,16 +56,7 @@ Record:
 - security-sensitive config, secret, auth, or network handling
 - performance and operational bottleneck hints
 - reusable modules with extraction recommendations
-
-## Phase 4.5: OSS Governance And Vulnerabilities
-
-When the caller enables the corresponding checks:
-
-- `--open-source`: collect hosted repository metadata and normalize whether the project appears public and open-source.
-- `--community-health`: record CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, issue template, PR template, CI, release, and recent-push signals; score them conservatively.
-- `--vulnerabilities`: derive dependency name/version tuples from manifests and query OSV; record findings and severity summary without pretending to be a full SCA platform.
-
-These checks are best-effort. Network failures, rate limits, private repositories, and non-versioned local dependencies should become warnings, not silent omissions.
+- license, coupling, freshness, and vulnerability uncertainty as engineering risks, not legal conclusions
 
 ## Phase 5: Freshness And Incremental Updates
 

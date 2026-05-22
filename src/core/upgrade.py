@@ -5,6 +5,7 @@ from importlib import resources
 from pathlib import Path
 
 from .assets import assets_root, copy_filesystem_tree, diff_trees, write_text
+from .inbox import INBOX_STAGING_DIRS
 from .manifest import CANONICAL_SKILL_ROOT, SUPPORTED_PLATFORMS, expected_manifest_text, is_existing_kb_root
 from .mirror import sync_one_platform
 
@@ -95,6 +96,18 @@ def cleanup_deprecated_generated_paths(kb_root: Path, actions: list[str], dry_ru
             target.unlink()
 
 
+def ensure_inbox_staging_dirs(kb_root: Path, actions: list[str], dry_run: bool) -> None:
+    missing = [rel for rel in INBOX_STAGING_DIRS if not (kb_root / rel).is_dir()]
+    if not missing:
+        actions.append("check inbox staging dirs: up to date")
+        return
+    actions.append(f"upgrade inbox staging dirs ({len(missing)} missing)")
+    for rel in missing:
+        actions.append(f"  mkdir:{rel.as_posix()}")
+        if not dry_run:
+            (kb_root / rel).mkdir(parents=True, exist_ok=True)
+
+
 def upgrade_kb(root: Path, *, dry_run: bool, confirm: str, force_conflicts: bool) -> int:
     kb_root = root.resolve()
     if not is_existing_kb_root(kb_root):
@@ -124,6 +137,7 @@ def upgrade_kb(root: Path, *, dry_run: bool, confirm: str, force_conflicts: bool
                 copy_filesystem_tree(src, dst, [], dry_run=False)
 
     ensure_qmd_config(kb_root, actions, dry_run)
+    ensure_inbox_staging_dirs(kb_root, actions, dry_run)
     cleanup_deprecated_generated_paths(kb_root, actions, dry_run)
 
     if conflicts and not force_conflicts:

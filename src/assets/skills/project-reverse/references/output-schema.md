@@ -10,21 +10,26 @@ Use this schema for `project-reverse` evidence artifacts. JSON is preferred for 
 - `freshness`: `current`, `stale`, or `unknown`, plus latest checked commit and check error when available.
 - `inventory`: file counts, extension counts, tree preview, manifests, docs, tests, config, CI, build/deploy, data/storage files.
 - `stack`: languages, package managers, frameworks, libraries, runtime versions, build tools.
-- `open_source_signals`: hosted repository metadata such as public/private signal, stars, forks, topics, archive state, and confidence when `--open-source` is enabled.
-- `license_signals`: license files, manifest license fields, normalized license summary, review-required flag, license-related config/check files, and confidence.
-- `community_health`: community files, CI/governance/security-policy signals, optional hosted activity metadata, score, and confidence when `--community-health` is enabled.
+- `license_signals`: license files, manifest license fields, normalized license hints, license-related config/check files, engineering `license_risk`, and confidence.
+- `license_type`: compatibility alias for the primary license signal; `unknown` when no primary license can be determined.
+- `dependency_inventory`: direct dependency signals from package manifests and requirements files.
+- `open_source_signals`: optional host, dependency count, license risk, activity, and version signals when `--open-source` is used.
+- `community_health`: optional local Git activity, contributor sample count, tags, docs, CI, and test health signals.
+- `vulnerability_signals`: optional best-effort OSV lookup status; network or service failures must be recorded as `unavailable` and non-blocking.
+- `known_vulnerabilities`: compatibility alias for OSV vulnerability results. This field is intentionally dual-shape for v1 compatibility: it may be a list of vulnerability records, or the string `unavailable` when lookup fails. Prefer `vulnerability_signals.status` for structured availability checks.
 - `modules`: module candidates with paths, responsibilities, entrypoints, dependencies, test files, reuse score, confidence.
 - `api_registry`: API candidates.
 - `configuration`: config files, environment variables, feature flags, secrets-management signals.
 - `build_deploy`: package scripts, make targets, Docker, compose, CI jobs, infra manifests.
 - `data_storage`: models, schema/migration files, DB/cache/queue/storage signals.
-- `vulnerability_signals`: dependency inventory, OSV query results, severity summary, findings, and confidence when `--vulnerabilities` is enabled.
 - `risks`: technical debt, security, performance, coupling, missing-test, stale-doc, and operational risks.
 - `reuse_assessment`: modules/components with extraction score and recommendation.
 - `diff`: present only for incremental update artifacts.
 - `source_anchor_path`: actual source anchor path when one was written; timestamp mode may create a sibling path if the requested anchor already exists.
 - `focused_artifacts`: optional paths for focused handoff files such as `api-registry.json` and `module-map.json`.
 - `warnings`: truncation, inaccessible remote, unsupported patterns, and inference limits.
+
+License fields are engineering risk labels for reuse review. They are not legal advice.
 
 ## API Registry Entry
 

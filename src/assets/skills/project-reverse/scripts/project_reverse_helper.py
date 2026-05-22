@@ -15,19 +15,18 @@ import re
 import shutil
 import subprocess
 import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib import error as urllib_error
-from urllib import parse as urllib_parse
-from urllib import request as urllib_request
 
 
 SCHEMA_VERSION = "project-reverse.v1"
 DEFAULT_REMOTE_GIT_TIMEOUT = 30
-DEFAULT_HTTP_TIMEOUT = 15
-DEFAULT_GITHUB_API_BASE = "https://api.github.com"
+DEFAULT_HTTP_TIMEOUT = 10
 DEFAULT_OSV_API_URL = "https://api.osv.dev/v1/querybatch"
 
 DEFAULT_EXCLUDES = [
@@ -159,6 +158,23 @@ LICENSE_FILE_NAMES = {
     "COPYING",
     "COPYING.md",
 }
+PERMISSIVE_LICENSE_HINTS = {
+    "mit": "MIT",
+    "apache-2.0": "Apache-2.0",
+    "apache license": "Apache-2.0",
+    "bsd-2-clause": "BSD",
+    "bsd-3-clause": "BSD",
+    "isc": "ISC",
+}
+REVIEW_LICENSE_HINTS = {
+    "gpl": "GPL-family",
+    "agpl": "AGPL-family",
+    "lgpl": "LGPL-family",
+    "elastic license": "Elastic-License",
+    "server side public license": "SSPL",
+    "sspl": "SSPL",
+    "business source license": "BUSL",
+}
 
 FRAMEWORK_HINTS = {
     "react": ["react"],
@@ -178,38 +194,6 @@ FRAMEWORK_HINTS = {
     "clap": ["clap"],
     "gin": ["github.com/gin-gonic/gin"],
     "cobra": ["github.com/spf13/cobra"],
-}
-
-COMMUNITY_FILE_PATTERNS = {
-    "contributing": ["CONTRIBUTING*", "**/CONTRIBUTING*"],
-    "code_of_conduct": ["CODE_OF_CONDUCT*", "**/CODE_OF_CONDUCT*"],
-    "security_policy": ["SECURITY*", ".github/SECURITY*", "**/SECURITY*"],
-    "support": ["SUPPORT*", "**/SUPPORT*"],
-    "governance": ["GOVERNANCE*", "**/GOVERNANCE*"],
-    "maintainers": ["MAINTAINERS*", "**/MAINTAINERS*"],
-    "issue_templates": [".github/ISSUE_TEMPLATE*", ".github/ISSUE_TEMPLATE/**"],
-    "pull_request_template": [".github/PULL_REQUEST_TEMPLATE*", "**/PULL_REQUEST_TEMPLATE*"],
-}
-
-KNOWN_LICENSES = {
-    "mit": "MIT",
-    "apache-2.0": "Apache-2.0",
-    "apache 2.0": "Apache-2.0",
-    "apache license 2.0": "Apache-2.0",
-    "bsd-2-clause": "BSD-2-Clause",
-    "bsd-3-clause": "BSD-3-Clause",
-    "mpl-2.0": "MPL-2.0",
-    "mozilla public license 2.0": "MPL-2.0",
-    "gpl-2.0": "GPL-2.0",
-    "gpl-3.0": "GPL-3.0",
-    "agpl-3.0": "AGPL-3.0",
-    "lgpl-2.1": "LGPL-2.1",
-    "lgpl-3.0": "LGPL-3.0",
-    "isc": "ISC",
-    "unlicense": "Unlicense",
-    "cc0-1.0": "CC0-1.0",
-    "elv2": "Elastic-2.0",
-    "elastic license 2.0": "Elastic-2.0",
 }
 
 
@@ -250,84 +234,6 @@ def provider_hint(repo: str) -> str:
     if is_local_repo(repo):
         return "local"
     return "git"
-
-
-def hosted_repo_identity(*candidates: str | None) -> dict[str, str] | None:
-    patterns = [
-        re.compile(
-            r"^(?:https?://|ssh://git@)(?P<host>[^/:]+)/(?P<owner>[^/]+)/(?P<name>[^/#?]+?)(?:\.git)?/?$",
-            re.I,
-        ),
-        re.compile(r"^git@(?P<host>[^:]+):(?P<owner>[^/]+)/(?P<name>[^/#?]+?)(?:\.git)?/?$", re.I),
-    ]
-    for candidate in candidates:
-        text = str(candidate or "").strip()
-        if not text:
-            continue
-        for pattern in patterns:
-            match = pattern.match(text)
-            if not match:
-                continue
-            host = match.group("host").lower()
-            owner = match.group("owner")
-            name = match.group("name")
-            provider = "git"
-            if "github.com" in host:
-                provider = "github"
-            elif "gitlab" in host:
-                provider = "gitlab"
-            return {
-                "provider": provider,
-                "host": host,
-                "owner": owner,
-                "name": name,
-                "repository": f"{owner}/{name}",
-            }
-    return None
-
-
-def http_json(
-    url: str,
-    *,
-    method: str = "GET",
-    data: dict[str, Any] | None = None,
-    headers: dict[str, str] | None = None,
-    timeout: int = DEFAULT_HTTP_TIMEOUT,
-) -> Any:
-    payload = json.dumps(data).encode("utf-8") if data is not None else None
-    request = urllib_request.Request(
-        url,
-        data=payload,
-        method=method,
-        headers={
-            "Accept": "application/json",
-            "Content-Type": "application/json" if payload is not None else "application/json",
-            "User-Agent": "llm-wiki-agent/project-reverse",
-            **(headers or {}),
-        },
-    )
-    try:
-        with urllib_request.urlopen(request, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except urllib_error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace").strip()
-        detail = detail[:400] if detail else exc.reason
-        raise RuntimeError(f"{method} {url} failed with HTTP {exc.code}: {detail}") from exc
-    except urllib_error.URLError as exc:
-        raise RuntimeError(f"{method} {url} failed: {exc.reason}") from exc
-
-
-def github_headers() -> dict[str, str]:
-    headers = {"Accept": "application/vnd.github+json"}
-    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    return headers
-
-
-def github_api_json(path: str, timeout: int = DEFAULT_HTTP_TIMEOUT) -> Any:
-    base = os.environ.get("GITHUB_API_BASE", DEFAULT_GITHUB_API_BASE).rstrip("/")
-    return http_json(f"{base}{path}", headers=github_headers(), timeout=timeout)
 
 
 def matches_any(path: str, patterns: list[str]) -> bool:
@@ -611,139 +517,6 @@ def parse_go_mod(path: Path) -> dict[str, Any]:
     return {"module": module, "go": go_version, "dependencies": deps[:200]}
 
 
-def normalize_license_name(value: Any) -> str | None:
-    text = str(value or "").strip()
-    if not text:
-        return None
-    lowered = text.lower()
-    for key, normalized in KNOWN_LICENSES.items():
-        if key in lowered:
-            return normalized
-    return text
-
-
-def infer_license_from_preview(text: str) -> str | None:
-    lowered = text.lower()
-    if "permission is hereby granted, free of charge, to any person obtaining a copy" in lowered:
-        return "MIT"
-    if "apache license" in lowered and "version 2.0" in lowered:
-        return "Apache-2.0"
-    if "gnu general public license" in lowered and "version 3" in lowered:
-        return "GPL-3.0"
-    if "gnu general public license" in lowered and "version 2" in lowered:
-        return "GPL-2.0"
-    if "gnu affero general public license" in lowered:
-        return "AGPL-3.0"
-    if "elastic license" in lowered and "2.0" in lowered:
-        return "Elastic-2.0"
-    return None
-
-
-def normalize_dependency_version(value: str | None, ecosystem: str) -> str | None:
-    text = str(value or "").strip().strip('"').strip("'")
-    if not text:
-        return None
-    if ecosystem == "crates.io" and "version" in text:
-        match = re.search(r'version\s*=\s*["\']([^"\']+)["\']', text)
-        if match:
-            text = match.group(1)
-    if ecosystem == "npm" and text.startswith(("file:", "link:", "workspace:", "github:", "git+", "http:", "https:")):
-        return None
-    if ecosystem == "PyPI" and text.startswith(("-e ", "git+", "http:", "https:")):
-        return None
-    match = re.search(r"\d+(?:\.\d+){0,3}(?:[-+._A-Za-z0-9]+)?", text)
-    return match.group(0) if match else None
-
-
-def dependency_inventory(stack: dict[str, Any], repo_dir: Path) -> list[dict[str, Any]]:
-    inventory: list[dict[str, Any]] = []
-    seen: set[tuple[str, str, str]] = set()
-    for manifest in stack.get("manifests", {}).get("package_json", []):
-        for section in ["dependencies", "devDependencies", "peerDependencies"]:
-            for name, raw_version in (manifest.get(section) or {}).items():
-                version = normalize_dependency_version(str(raw_version), "npm")
-                if not version:
-                    continue
-                key = ("npm", str(name), version)
-                if key in seen:
-                    continue
-                seen.add(key)
-                inventory.append(
-                    {
-                        "ecosystem": "npm",
-                        "name": str(name),
-                        "version": version,
-                        "manifest_path": manifest.get("path"),
-                        "source": section,
-                    }
-                )
-    for manifest in stack.get("manifests", {}).get("cargo_toml", []):
-        for name, raw_version in (manifest.get("dependencies") or {}).items():
-            version = normalize_dependency_version(str(raw_version), "crates.io")
-            if not version:
-                continue
-            key = ("crates.io", str(name), version)
-            if key in seen:
-                continue
-            seen.add(key)
-            inventory.append(
-                {
-                    "ecosystem": "crates.io",
-                    "name": str(name),
-                    "version": version,
-                    "manifest_path": manifest.get("path"),
-                    "source": "dependencies",
-                }
-            )
-    for manifest in stack.get("manifests", {}).get("go_mod", []):
-        for dependency in manifest.get("dependencies", []):
-            parts = str(dependency).split()
-            if len(parts) < 2:
-                continue
-            version = normalize_dependency_version(parts[1], "Go")
-            if not version:
-                continue
-            key = ("Go", parts[0], version)
-            if key in seen:
-                continue
-            seen.add(key)
-            inventory.append(
-                {
-                    "ecosystem": "Go",
-                    "name": parts[0],
-                    "version": version,
-                    "manifest_path": manifest.get("path"),
-                    "source": "go.mod",
-                }
-            )
-    for path in sorted(repo_dir.glob("requirements*.txt"), key=lambda item: item.as_posix().lower())[:40]:
-        rel = normalize_rel(path.relative_to(repo_dir))
-        for line in read_text(repo_dir / rel, max_chars=120_000).splitlines():
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-            match = re.match(r"^([A-Za-z0-9_.-]+)\s*==\s*([^\s;#]+)", stripped)
-            if not match:
-                continue
-            name, version = match.group(1), normalize_dependency_version(match.group(2), "PyPI")
-            if not version:
-                continue
-            key = ("PyPI", name, version)
-            if key in seen:
-                continue
-            seen.add(key)
-            inventory.append(
-                {
-                    "ecosystem": "PyPI",
-                    "name": name,
-                    "version": version,
-                    "manifest_path": rel,
-                    "source": "requirements",
-                }
-            )
-    return inventory[:200]
-
-
 def collect_stack(repo_dir: Path, files: list[dict[str, Any]]) -> dict[str, Any]:
     extensions = Counter(str(item.get("extension") or "[no_ext]") for item in files)
     languages = []
@@ -812,39 +585,94 @@ def collect_stack(repo_dir: Path, files: list[dict[str, Any]]) -> dict[str, Any]
     }
 
 
+def normalize_license_name(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, list):
+        names = [normalize_license_name(item) for item in value]
+        return " OR ".join(name for name in names if name) or None
+    if isinstance(value, dict):
+        return normalize_license_name(value.get("type") or value.get("name") or value.get("license"))
+    text = str(value).strip()
+    if not text:
+        return None
+    lowered = text.lower()
+    for needle, label in REVIEW_LICENSE_HINTS.items():
+        if needle in lowered:
+            return label
+    for needle, label in PERMISSIVE_LICENSE_HINTS.items():
+        if needle in lowered:
+            return label
+    cleaned = re.sub(r"\s+", " ", text)
+    return cleaned[:120]
+
+
+def infer_license_from_preview(text: str) -> str | None:
+    lowered = text.lower()
+    for needle, label in REVIEW_LICENSE_HINTS.items():
+        if needle in lowered:
+            return label
+    for needle, label in PERMISSIVE_LICENSE_HINTS.items():
+        if needle in lowered:
+            return label
+    return None
+
+
+def license_risk_label(normalized_licenses: list[str]) -> str:
+    if not normalized_licenses:
+        return "unknown_review_required"
+    lowered = " ".join(normalized_licenses).lower()
+    if any(token in lowered for token in ["gpl", "agpl", "lgpl", "sspl", "elastic", "busl"]):
+        return "review_required"
+    return "known_license_review_recommended"
+
+
 def collect_license_signals(repo_dir: Path, files: list[dict[str, Any]], stack: dict[str, Any]) -> dict[str, Any]:
     license_files = []
+    normalized: list[str] = []
     for rel in select_paths(files, list(LICENSE_FILE_NAMES) + ["**/LICENSE*", "**/LICENCE*", "**/NOTICE*", "**/COPYING*"], limit=80):
         path = repo_dir / rel
         preview = ""
         if path.exists() and not is_probably_binary(path):
             preview = read_text(path, max_chars=2000)
+        inferred = infer_license_from_preview(preview)
+        if inferred:
+            normalized.append(inferred)
         license_files.append(
             {
                 "path": rel,
                 "preview": preview[:2000],
+                "inferred_license": inferred,
             }
         )
 
     manifest_licenses = []
     for manifest in stack.get("manifests", {}).get("package_json", []):
         if manifest.get("license") or manifest.get("licenses"):
+            normalized_license = normalize_license_name(manifest.get("license") or manifest.get("licenses"))
+            if normalized_license:
+                normalized.append(normalized_license)
             manifest_licenses.append(
                 {
                     "path": manifest.get("path"),
                     "package": manifest.get("name"),
                     "license": manifest.get("license"),
                     "licenses": manifest.get("licenses"),
+                    "normalized_license": normalized_license,
                 }
             )
     for manifest in stack.get("manifests", {}).get("cargo_toml", []):
         package = manifest.get("package") or {}
         if package.get("license"):
+            normalized_license = normalize_license_name(package.get("license"))
+            if normalized_license:
+                normalized.append(normalized_license)
             manifest_licenses.append(
                 {
                     "path": manifest.get("path"),
                     "package": package.get("name"),
                     "license": package.get("license"),
+                    "normalized_license": normalized_license,
                 }
             )
 
@@ -853,251 +681,191 @@ def collect_license_signals(repo_dir: Path, files: list[dict[str, Any]], stack: 
         ["**/*license*", "**/*licence*", "**/*notice*", "**/licenserc.*", "**/license-check.*"],
         limit=120,
     )
-    normalized: list[str] = []
-    for item in manifest_licenses:
-        normalized_name = normalize_license_name(item.get("license"))
-        if normalized_name and normalized_name not in normalized:
-            normalized.append(normalized_name)
-        for extra in item.get("licenses") or []:
-            normalized_name = normalize_license_name(extra)
-            if normalized_name and normalized_name not in normalized:
-                normalized.append(normalized_name)
-    for item in license_files:
-        inferred = infer_license_from_preview(str(item.get("preview") or ""))
-        if inferred and inferred not in normalized:
-            normalized.append(inferred)
-    primary = normalized[0] if normalized else None
-    review_required = len(normalized) > 1 or any(token in str(item.get("license") or "").lower() for item in manifest_licenses for token in [" or ", " and ", "/", ","])
+    normalized_licenses = sorted(set(item for item in normalized if item))
+    primary_license = normalized_licenses[0] if len(normalized_licenses) == 1 else None
+
     return {
         "license_files": license_files,
         "manifest_licenses": manifest_licenses,
         "license_related_files": license_related_files,
-        "normalized_licenses": normalized,
-        "primary_license": primary,
-        "license_review_required": review_required,
+        "normalized_licenses": normalized_licenses,
+        "primary_license": primary_license,
+        "license_risk": license_risk_label(normalized_licenses),
+        "license_review_required": license_risk_label(normalized_licenses) in {"unknown_review_required", "review_required"},
+        "engineering_note": "License signals are engineering risk labels, not legal advice.",
         "confidence": "confirmed" if license_files or manifest_licenses else "tentative",
+    }
+
+
+def dependency_inventory(repo_dir: Path, files: list[dict[str, Any]], stack: dict[str, Any], limit: int = 600) -> list[dict[str, Any]]:
+    deps: list[dict[str, Any]] = []
+    for manifest in stack.get("manifests", {}).get("package_json", []):
+        for scope in ["dependencies", "devDependencies", "peerDependencies"]:
+            for name, version in (manifest.get(scope) or {}).items():
+                deps.append({"ecosystem": "npm", "name": name, "version": str(version), "scope": scope, "manifest": manifest.get("path")})
+    for manifest in stack.get("manifests", {}).get("cargo_toml", []):
+        for name, version in (manifest.get("dependencies") or {}).items():
+            deps.append({"ecosystem": "crates.io", "name": name, "version": str(version), "scope": "dependencies", "manifest": manifest.get("path")})
+    for manifest in stack.get("manifests", {}).get("go_mod", []):
+        for raw in manifest.get("dependencies", []):
+            parts = raw.split()
+            if parts:
+                deps.append({"ecosystem": "Go", "name": parts[0], "version": parts[1] if len(parts) > 1 else "", "scope": "require", "manifest": manifest.get("path")})
+    for rel in select_paths(files, ["requirements.txt", "**/requirements.txt", "requirements-*.txt", "**/requirements-*.txt"], limit=60):
+        try:
+            for line in read_text(repo_dir / rel, max_chars=200_000).splitlines():
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#") or stripped.startswith("-"):
+                    continue
+                match = re.match(r"([A-Za-z0-9_.-]+)\s*([=<>!~]=?.*)?", stripped)
+                if match:
+                    deps.append({"ecosystem": "PyPI", "name": match.group(1), "version": (match.group(2) or "").strip(), "scope": "requirements", "manifest": rel})
+        except OSError:
+            continue
+    dedup: list[dict[str, Any]] = []
+    seen = set()
+    for dep in deps:
+        key = (dep["ecosystem"], dep["name"], dep.get("manifest"), dep.get("scope"))
+        if key in seen:
+            continue
+        seen.add(key)
+        dedup.append(dep)
+        if len(dedup) >= limit:
+            break
+    return dedup
+
+
+def collect_community_health(repo_dir: Path, files: list[dict[str, Any]], build_deploy: dict[str, Any], *, enabled: bool, git_timeout: int) -> dict[str, Any]:
+    if not enabled:
+        return {"status": "not_requested"}
+    warnings: list[str] = []
+    try:
+        commits = run_git(["log", "--since=90 days ago", "--format=%H"], cwd=repo_dir, check=False, timeout=git_timeout).splitlines()
+        contributors = run_git(["shortlog", "-sn", "HEAD"], cwd=repo_dir, check=False, timeout=git_timeout).splitlines()
+        tags = run_git(["tag", "--sort=-creatordate"], cwd=repo_dir, check=False, timeout=git_timeout).splitlines()
+    except Exception as exc:
+        commits, contributors, tags = [], [], []
+        warnings.append(str(exc))
+    community_docs = select_paths(
+        files,
+        ["README*", "CHANGELOG*", "CONTRIBUTING*", "CODE_OF_CONDUCT*", "SECURITY*", "docs/**"],
+        limit=80,
+    )
+    has_ci = bool(build_deploy.get("ci_files"))
+    has_tests = bool(select_paths(files, ["tests/**", "test/**", "**/*test*", "**/*spec*"], limit=5))
+    score = 0
+    score += 2 if commits else 0
+    score += 2 if contributors else 0
+    score += 2 if has_ci else 0
+    score += 2 if has_tests else 0
+    score += 1 if tags else 0
+    score += 1 if community_docs else 0
+    return {
+        "status": "available",
+        "commit_count_90d": len(commits),
+        "contributor_sample_count": len(contributors),
+        "recent_tag_sample": tags[:10],
+        "community_docs": community_docs,
+        "has_ci": has_ci,
+        "has_tests": has_tests,
+        "health_score": min(score, 10),
+        "warnings": warnings,
     }
 
 
 def collect_open_source_signals(
     repo: dict[str, Any],
     license_signals: dict[str, Any],
+    dependencies: list[dict[str, Any]],
+    community_health: dict[str, Any],
     *,
     enabled: bool,
-    timeout: int = DEFAULT_HTTP_TIMEOUT,
-) -> tuple[dict[str, Any], dict[str, Any] | None, list[str]]:
-    warnings: list[str] = []
-    payload = {
-        "enabled": enabled,
-        "provider": repo.get("provider"),
-        "remote_url": repo.get("remote_url"),
-        "repository": None,
-        "host": None,
-        "owner": None,
-        "name": None,
-        "is_public": None,
-        "is_open_source": bool(license_signals.get("primary_license")),
-        "archived": None,
-        "fork": None,
-        "default_branch": repo.get("default_or_current_branch"),
-        "homepage": None,
-        "topics": [],
-        "stars": None,
-        "forks": None,
-        "watchers": None,
-        "open_issues": None,
-        "created_at": None,
-        "updated_at": None,
-        "pushed_at": None,
-        "source": "local-repo-signals",
-        "confidence": "tentative",
-    }
-    identity = hosted_repo_identity(repo.get("remote_url"), repo.get("input"))
-    if identity:
-        payload.update(identity)
-    repo_api: dict[str, Any] | None = None
-    if not enabled or not identity or identity.get("provider") != "github":
-        return payload, repo_api, warnings
-    try:
-        repo_api = github_api_json(f"/repos/{identity['owner']}/{identity['name']}", timeout=timeout)
-        payload.update(
-            {
-                "is_public": not bool(repo_api.get("private")),
-                "is_open_source": (not bool(repo_api.get("private"))) and bool(license_signals.get("primary_license") or repo_api.get("license")),
-                "archived": repo_api.get("archived"),
-                "fork": repo_api.get("fork"),
-                "default_branch": repo_api.get("default_branch") or payload.get("default_branch"),
-                "homepage": repo_api.get("homepage"),
-                "topics": repo_api.get("topics") or [],
-                "stars": repo_api.get("stargazers_count"),
-                "forks": repo_api.get("forks_count"),
-                "watchers": repo_api.get("subscribers_count") or repo_api.get("watchers_count"),
-                "open_issues": repo_api.get("open_issues_count"),
-                "created_at": repo_api.get("created_at"),
-                "updated_at": repo_api.get("updated_at"),
-                "pushed_at": repo_api.get("pushed_at"),
-                "source": "github-repo-api",
-                "confidence": "confirmed",
-            }
-        )
-    except Exception as exc:
-        warnings.append(f"Open-source metadata query failed: {exc}")
-    return payload, repo_api, warnings
-
-
-def parse_timestamp(value: Any) -> datetime | None:
-    text = str(value or "").strip()
-    if not text:
-        return None
-    if text.endswith("Z"):
-        text = text[:-1] + "+00:00"
-    try:
-        return datetime.fromisoformat(text)
-    except ValueError:
-        return None
-
-
-def collect_community_health(
-    files: list[dict[str, Any]],
-    build_deploy: dict[str, Any],
-    repo_api: dict[str, Any] | None,
-    *,
-    enabled: bool,
-    timeout: int = DEFAULT_HTTP_TIMEOUT,
-    repository: str | None = None,
-) -> tuple[dict[str, Any], list[str]]:
-    warnings: list[str] = []
-    docs = {name: select_paths(files, patterns, limit=20) for name, patterns in COMMUNITY_FILE_PATTERNS.items()}
-    latest_release_at = None
-    contributor_sample_count = None
-    remote_signals: dict[str, Any] = {}
-    if enabled and repo_api and repository:
-        remote_signals = {
-            "has_issues": repo_api.get("has_issues"),
-            "has_wiki": repo_api.get("has_wiki"),
-            "has_projects": repo_api.get("has_projects"),
-            "open_issues_count": repo_api.get("open_issues_count"),
-            "updated_at": repo_api.get("updated_at"),
-            "pushed_at": repo_api.get("pushed_at"),
-        }
-        try:
-            release = github_api_json(f"/repos/{repository}/releases/latest", timeout=timeout)
-            latest_release_at = release.get("published_at") or release.get("created_at")
-        except Exception as exc:
-            warnings.append(f"Latest release query failed: {exc}")
-        try:
-            contributors = github_api_json(f"/repos/{repository}/contributors?per_page=5", timeout=timeout)
-            if isinstance(contributors, list):
-                contributor_sample_count = len(contributors)
-        except Exception as exc:
-            warnings.append(f"Contributor query failed: {exc}")
-    checks = {
-        "has_contributing": bool(docs["contributing"]),
-        "has_code_of_conduct": bool(docs["code_of_conduct"]),
-        "has_security_policy": bool(docs["security_policy"]),
-        "has_support": bool(docs["support"]),
-        "has_governance": bool(docs["governance"]),
-        "has_maintainers": bool(docs["maintainers"]),
-        "has_issue_templates": bool(docs["issue_templates"]),
-        "has_pull_request_template": bool(docs["pull_request_template"]),
-        "has_ci": bool(build_deploy.get("ci_files")),
-        "has_recent_release": bool(latest_release_at),
-        "has_recent_push": False,
-    }
-    pushed_at = parse_timestamp(remote_signals.get("pushed_at"))
-    if pushed_at is not None:
-        checks["has_recent_push"] = (datetime.now(timezone.utc) - pushed_at).days <= 180
-    points = sum(1 for value in checks.values() if value)
-    score = "unknown"
-    if points >= 6:
-        score = "healthy"
-    elif points >= 3:
-        score = "moderate"
-    elif points > 0:
-        score = "limited"
-    return (
-        {
-            "enabled": enabled,
-            "score": score,
-            "checks": checks,
-            "documents": docs,
-            "remote": remote_signals,
-            "latest_release_at": latest_release_at,
-            "contributor_sample_count": contributor_sample_count,
-            "confidence": "confirmed" if repo_api else ("inferred" if points else "tentative"),
+) -> dict[str, Any]:
+    if not enabled:
+        return {"status": "not_requested"}
+    remote = repo.get("remote_url") or repo.get("input") or ""
+    parsed = urllib.parse.urlparse(str(remote))
+    package_versions = [dep for dep in dependencies if dep.get("version")][:40]
+    return {
+        "status": "available",
+        "host": parsed.netloc or repo.get("provider") or "local",
+        "source": str(remote),
+        "license_risk": license_signals.get("license_risk"),
+        "license_review_required": license_signals.get("license_review_required"),
+        "dependency_count": len(dependencies),
+        "dependency_version_signals": package_versions,
+        "activity": {
+            "commit_count_90d": community_health.get("commit_count_90d"),
+            "contributor_sample_count": community_health.get("contributor_sample_count"),
+            "health_score": community_health.get("health_score"),
         },
-        warnings,
-    )
-
-
-def normalize_vulnerability_severity(item: dict[str, Any]) -> str:
-    value = str((item.get("database_specific") or {}).get("severity") or "").strip().lower()
-    if value in {"critical", "high", "medium", "low"}:
-        return value
-    return "unknown"
+        "network_checks": "not_performed",
+    }
 
 
 def collect_vulnerability_signals(
-    stack: dict[str, Any],
-    repo_dir: Path,
+    dependencies: list[dict[str, Any]],
     *,
     enabled: bool,
+    api_url: str = DEFAULT_OSV_API_URL,
     timeout: int = DEFAULT_HTTP_TIMEOUT,
-) -> tuple[dict[str, Any], list[str]]:
-    warnings: list[str] = []
-    dependencies = dependency_inventory(stack, repo_dir)
-    payload = {
-        "enabled": enabled,
-        "query_source": "osv",
-        "queried_dependencies": [],
-        "queryable_dependency_count": len(dependencies),
-        "findings": [],
-        "summary": {"critical": 0, "high": 0, "medium": 0, "low": 0, "unknown": 0},
-        "confidence": "tentative",
-    }
+) -> dict[str, Any]:
     if not enabled:
-        return payload, warnings
-    queries = [
-        {
-            "package": {"name": item["name"], "ecosystem": item["ecosystem"]},
-            "version": item["version"],
-        }
-        for item in dependencies[:100]
-    ]
-    payload["queried_dependencies"] = dependencies[:100]
+        return {"status": "not_requested"}
+    queries = []
+    for dep in dependencies:
+        ecosystem = dep.get("ecosystem")
+        if ecosystem not in {"npm", "crates.io", "Go", "PyPI"}:
+            continue
+        query: dict[str, Any] = {"package": {"name": dep["name"], "ecosystem": ecosystem}}
+        version = str(dep.get("version") or "").strip()
+        exact = re.search(r"\b(\d+\.\d+(?:\.\d+)?(?:[-+][A-Za-z0-9_.-]+)?)\b", version)
+        if exact:
+            query["version"] = exact.group(1)
+        queries.append(query)
+        if len(queries) >= 100:
+            break
     if not queries:
-        warnings.append("No queryable dependency versions were found for OSV.")
-        return payload, warnings
+        return {"status": "not_applicable", "reason": "no supported dependency/version signals"}
+    body = json.dumps({"queries": queries}).encode("utf-8")
+    request = urllib.request.Request(api_url, data=body, headers={"Content-Type": "application/json"}, method="POST")
     try:
-        response = http_json(
-            os.environ.get("OSV_API_URL", DEFAULT_OSV_API_URL),
-            method="POST",
-            data={"queries": queries},
-            timeout=timeout,
-        )
-    except Exception as exc:
-        warnings.append(f"Vulnerability query failed: {exc}")
-        return payload, warnings
-    for dependency, result in zip(payload["queried_dependencies"], (response.get("results") or [])):
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8", errors="replace"))
+    except (OSError, urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError) as exc:
+        return {
+            "status": "unavailable",
+            "reason": str(exc),
+            "queried_dependency_count": len(queries),
+            "blocking": False,
+        }
+    results = payload.get("results") or []
+    vulns = []
+    for idx, result in enumerate(results):
         for vuln in result.get("vulns") or []:
-            severity = normalize_vulnerability_severity(vuln)
-            finding = {
-                "package": dependency["name"],
-                "ecosystem": dependency["ecosystem"],
-                "version": dependency["version"],
-                "manifest_path": dependency.get("manifest_path"),
-                "id": vuln.get("id"),
-                "aliases": vuln.get("aliases") or [],
-                "summary": vuln.get("summary"),
-                "severity": severity,
-                "fixed_versions": [item.get("fixed") for item in vuln.get("affected") or [] if item.get("fixed")],
-                "reference_urls": [ref.get("url") for ref in vuln.get("references") or [] if ref.get("url")][:8],
-                "confidence": "confirmed",
-            }
-            payload["findings"].append(finding)
-            payload["summary"][severity] = payload["summary"].get(severity, 0) + 1
-    payload["confidence"] = "confirmed"
-    return payload, warnings
+            vulns.append(
+                {
+                    "dependency": queries[idx].get("package", {}) if idx < len(queries) else {},
+                    "id": vuln.get("id"),
+                    "summary": vuln.get("summary"),
+                    "modified": vuln.get("modified"),
+                }
+            )
+    return {
+        "status": "available",
+        "queried_dependency_count": len(queries),
+        "vulnerability_count": len(vulns),
+        "vulnerabilities": vulns[:80],
+    }
+
+
+def open_source_alias_fields(license_signals: dict[str, Any], vulnerability_signals: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "license_type": license_signals.get("primary_license") or "unknown",
+        "known_vulnerabilities": vulnerability_signals.get("vulnerabilities", [])
+        if vulnerability_signals.get("status") != "unavailable"
+        else "unavailable",
+    }
 
 
 def infer_responsibility(path: str) -> str:
@@ -2078,30 +1846,45 @@ def analyze_repo(args: argparse.Namespace) -> dict[str, Any]:
         configuration = collect_configuration(repo_dir, files)
         build_deploy = collect_build_deploy(repo_dir, files, stack)
         data_storage = collect_data_storage(files, stack)
-        open_source_signals, repo_api, open_source_warnings = collect_open_source_signals(
-            repo,
-            license_signals,
-            enabled=args.open_source or args.community_health,
-            timeout=args.http_timeout,
-        )
-        warnings.extend(open_source_warnings)
-        community_health, community_warnings = collect_community_health(
+        dependencies = dependency_inventory(repo_dir, files, stack)
+        community_health = collect_community_health(
+            repo_dir,
             files,
             build_deploy,
-            repo_api,
-            enabled=args.community_health,
-            timeout=args.http_timeout,
-            repository=open_source_signals.get("repository"),
+            enabled=args.community_health or args.open_source,
+            git_timeout=args.git_timeout,
         )
-        warnings.extend(community_warnings)
-        vulnerability_signals, vulnerability_warnings = collect_vulnerability_signals(
-            stack,
-            repo_dir,
+        open_source_signals = collect_open_source_signals(
+            repo,
+            license_signals,
+            dependencies,
+            community_health,
+            enabled=args.open_source,
+        )
+        vulnerability_signals = collect_vulnerability_signals(
+            dependencies,
             enabled=args.vulnerabilities,
             timeout=args.http_timeout,
         )
-        warnings.extend(vulnerability_warnings)
         risks = collect_risks(files, modules, configuration, warnings)
+        if license_signals.get("license_review_required"):
+            risks.append(
+                {
+                    "type": "license-review",
+                    "severity": "medium" if license_signals.get("license_risk") == "review_required" else "low",
+                    "license_risk": license_signals.get("license_risk"),
+                    "note": "Engineering risk label only; not legal advice.",
+                }
+            )
+        if vulnerability_signals.get("status") == "unavailable":
+            risks.append(
+                {
+                    "type": "vulnerability-query-unavailable",
+                    "severity": "low",
+                    "reason": vulnerability_signals.get("reason"),
+                    "blocking": False,
+                }
+            )
         reuse = [
             {
                 "module": module["name"],
@@ -2147,15 +1930,17 @@ def analyze_repo(args: argparse.Namespace) -> dict[str, Any]:
                 "data_storage_files": data_storage["data_files"],
             },
             "stack": stack,
-            "open_source_signals": open_source_signals,
+            **open_source_alias_fields(license_signals, vulnerability_signals),
             "license_signals": license_signals,
+            "dependency_inventory": dependencies,
+            "open_source_signals": open_source_signals,
             "community_health": community_health,
+            "vulnerability_signals": vulnerability_signals,
             "modules": modules,
             "api_registry": api_registry,
             "configuration": configuration,
             "build_deploy": build_deploy,
             "data_storage": data_storage,
-            "vulnerability_signals": vulnerability_signals,
             "risks": risks,
             "reuse_assessment": reuse,
             "warnings": warnings,
@@ -2303,13 +2088,13 @@ def parse_args() -> argparse.Namespace:
     analyze.add_argument("--max-files", type=int, default=3000)
     analyze.add_argument("--max-api-entries", type=int, default=800)
     analyze.add_argument("--exclude-globs", action="append", default=[])
-    analyze.add_argument("--open-source", action="store_true", help="Query hosted repository open-source metadata when available.")
-    analyze.add_argument("--community-health", action="store_true", help="Collect community health evidence from repo files and hosted metadata.")
-    analyze.add_argument("--vulnerabilities", action="store_true", help="Query dependency vulnerability signals from OSV when versions are available.")
     analyze.add_argument("--write-focused-artifacts", action="store_true", help="Write api-registry.json and module-map.json beside the main artifact")
     analyze.add_argument("--artifact-dir", help="Directory for focused artifacts. Defaults to the main output directory.")
     analyze.add_argument("--git-timeout", type=int, default=DEFAULT_REMOTE_GIT_TIMEOUT, help="Seconds per remote freshness git operation.")
-    analyze.add_argument("--http-timeout", type=int, default=DEFAULT_HTTP_TIMEOUT, help="Seconds per hosted metadata or vulnerability query.")
+    analyze.add_argument("--http-timeout", type=int, default=DEFAULT_HTTP_TIMEOUT, help="Seconds for optional HTTP checks.")
+    analyze.add_argument("--open-source", action="store_true", help="Include open-source reuse signals such as license, activity, dependency, and version hints.")
+    analyze.add_argument("--community-health", action="store_true", help="Include local Git activity, docs, CI, and test health signals.")
+    analyze.add_argument("--vulnerabilities", action="store_true", help="Best-effort OSV vulnerability lookup. Failures are reported as unavailable and do not block analysis.")
     analyze.add_argument(
         "--source-anchor-mode",
         choices=["timestamp", "error", "skip"],

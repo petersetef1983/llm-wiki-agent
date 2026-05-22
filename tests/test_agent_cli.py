@@ -11,8 +11,7 @@ import unittest
 from pathlib import Path
 
 from src.cli import build_parser, main
-from src.agent import AgentRequest, CommandProvider, CONFIRM_WRITE, build_ingest_request, parse_agent_response
-from src.agent.context import _load_ingest_core
+from src.agent import AgentRequest, CommandProvider, CONFIRM_WRITE, parse_agent_response
 from src.core.bootstrap import CONFIRM_CREATE, init_kb
 from src.core.manifest import parse_platforms
 
@@ -22,63 +21,15 @@ class AgentCliTests(unittest.TestCase):
         parser = build_parser()
         self.assertEqual(parser.parse_args(["query", "hello"]).command, "query")
         self.assertEqual(parser.parse_args(["ingest", "note.md"]).command, "ingest")
-        self.assertEqual(parser.parse_args(["ingest", "note.md", "--type", "requirement"]).type, "requirement")
-        ingest = parser.parse_args(["ingest", "note.md", "--open-source", "--community-health", "--vulnerabilities"])
-        self.assertTrue(ingest.open_source)
-        self.assertTrue(ingest.community_health)
-        self.assertTrue(ingest.vulnerabilities)
+        ingest_args = parser.parse_args(["ingest", "prd.md", "--type", "requirement", "--target-theme", "themes/project/00-product", "--open-source"])
+        self.assertEqual(ingest_args.type, "requirement")
+        self.assertEqual(ingest_args.target_theme, "themes/project/00-product")
+        self.assertTrue(ingest_args.open_source)
+        synthesize_args = parser.parse_args(["synthesize", "--target-theme", "themes/project/00-product", "--search-mode", "keyword"])
+        self.assertEqual(synthesize_args.command, "synthesize")
+        self.assertEqual(synthesize_args.search_mode, "keyword")
         self.assertEqual(parser.parse_args(["lint"]).command, "lint")
         self.assertEqual(parser.parse_args(["init", "--target", "kb", "--dry-run"]).command, "init")
-
-    def test_build_ingest_request_includes_git_analysis_options(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = self._init_kb(Path(tmp) / "kb")
-            request = build_ingest_request(
-                root,
-                "https://github.com/example/repo",
-                git_analysis_options={
-                    "open_source": True,
-                    "community_health": True,
-                    "vulnerabilities": True,
-                },
-            )
-            self.assertEqual(
-                request.task["git_analysis_options"],
-                {
-                    "open_source": True,
-                    "community_health": True,
-                    "vulnerabilities": True,
-                },
-            )
-
-    def test_build_ingest_request_exposes_generate_output_templates(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = self._init_kb(Path(tmp) / "kb")
-            request = build_ingest_request(root, "requirements.md", ingest_type="requirement")
-            generate_outputs = request.context["generate_outputs"]
-            self.assertTrue(generate_outputs["enabled"])
-            self.assertIn("asset-match-brief.md", generate_outputs["guide"])
-            self.assertEqual(request.context["output_templates"], generate_outputs["templates"])
-
-            templates = {item["path"]: item["content"] for item in generate_outputs["templates"]}
-            self.assertIn("outputs/engineering-brief.md", templates)
-            self.assertIn("## Candidate Assets", templates["outputs/engineering-brief.md"])
-            self.assertIn("outputs/implementation-guide.md", templates)
-            self.assertIn("## Reuse And Adaptation Plan", templates["outputs/implementation-guide.md"])
-            self.assertIn("outputs/asset-match-brief.md", templates)
-            self.assertIn("## Candidate Matches", templates["outputs/asset-match-brief.md"])
-            self.assertIn("outputs/requirement-analysis.md", templates)
-
-    def test_project_theme_scaffold_writes_asset_match_brief(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = self._init_kb(Path(tmp) / "kb")
-            core = _load_ingest_core(root)
-            payload = core.create_theme(root, "project", "Task4 Demo")
-            brief_path = root / payload["relative_path"] / "outputs" / "asset-match-brief.md"
-            self.assertTrue(brief_path.exists())
-            content = brief_path.read_text(encoding="utf-8")
-            self.assertIn("# Asset Match Brief", content)
-            self.assertIn("## Candidate Matches", content)
 
     def test_parse_agent_response_normalizes_schema(self) -> None:
         response = parse_agent_response(
@@ -190,13 +141,15 @@ class AgentCliTests(unittest.TestCase):
             self.assertTrue(target.exists())
             self.assertIn("New ingested note", target.read_text(encoding="utf-8"))
 
-    def test_ingest_requirement_type_writes_requirement_analysis(self) -> None:
+    def test_requirement_ingest_writes_theme_local_analysis(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = self._init_kb(Path(tmp) / "kb")
-            source = root / "inbox" / "to-be-filed" / "requirements.md"
-            source.write_text("# PRD\n\n- Need alert rules.\n", encoding="utf-8")
+            source = root / "inbox" / "requirements" / "prd.md"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("# PRD\n\n## Functional Requirements\n\n- 用户可以检索历史项目。\n", encoding="utf-8")
             command = self._fake_agent_command(Path(tmp))
-            target = root / "outputs" / "requirement-analysis.md"
+            target_theme = "themes/project/00-product"
+            target = root / target_theme / "outputs" / "requirement-analysis.md"
 
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
@@ -208,6 +161,8 @@ class AgentCliTests(unittest.TestCase):
                         str(root),
                         "--type",
                         "requirement",
+                        "--target-theme",
+                        target_theme,
                         "--provider",
                         "command",
                         "--agent-command",
@@ -221,9 +176,73 @@ class AgentCliTests(unittest.TestCase):
             self.assertEqual(code, 0, output.getvalue())
             payload = json.loads(output.getvalue())
             self.assertEqual(payload["type"], "requirement")
-            self.assertEqual(payload["response"]["writeback_target"], "outputs/requirement-analysis.md")
             self.assertTrue(target.exists())
-            self.assertIn("Functional Requirements", target.read_text(encoding="utf-8"))
+            content = target.read_text(encoding="utf-8")
+            self.assertIn("REQ-001", content)
+            self.assertIn("confidence", content.lower())
+
+    def test_synthesize_dry_run_and_confirmed_apply(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._init_kb(Path(tmp) / "kb")
+            target_theme = "themes/project/00-product"
+            theme_dir = root / target_theme
+            (theme_dir / "outputs").mkdir(parents=True, exist_ok=True)
+            (theme_dir / "README.md").write_text("# Product\n", encoding="utf-8")
+            (theme_dir / "outputs" / "requirement-analysis.md").write_text(
+                "# Requirement Analysis\n\n| ID | Type | Requirement | Priority | Confidence | Evidence | Related modules/entities |\n"
+                "| --- | --- | --- | --- | --- | --- | --- |\n"
+                "| REQ-001 | functional | Reuse historical search. | high | confirmed | source | search |\n",
+                encoding="utf-8",
+            )
+            command = self._fake_agent_command(Path(tmp))
+            target = theme_dir / "outputs" / "asset-match-brief.md"
+
+            dry_output = io.StringIO()
+            with contextlib.redirect_stdout(dry_output):
+                dry_code = main(
+                    [
+                        "synthesize",
+                        "--root",
+                        str(root),
+                        "--target-theme",
+                        target_theme,
+                        "--search-mode",
+                        "keyword",
+                        "--provider",
+                        "command",
+                        "--agent-command",
+                        command,
+                        "--format",
+                        "json",
+                    ]
+                )
+            self.assertEqual(dry_code, 0, dry_output.getvalue())
+            self.assertFalse(target.exists())
+
+            apply_output = io.StringIO()
+            with contextlib.redirect_stdout(apply_output):
+                apply_code = main(
+                    [
+                        "synthesize",
+                        "--root",
+                        str(root),
+                        "--target-theme",
+                        target_theme,
+                        "--search-mode",
+                        "keyword",
+                        "--provider",
+                        "command",
+                        "--agent-command",
+                        command,
+                        "--confirm",
+                        CONFIRM_WRITE,
+                        "--format",
+                        "json",
+                    ]
+                )
+            self.assertEqual(apply_code, 0, apply_output.getvalue())
+            self.assertTrue(target.exists())
+            self.assertIn("Candidate Matches", target.read_text(encoding="utf-8"))
 
     def test_lint_fix_plan_is_dry_run_without_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -275,22 +294,26 @@ class AgentCliTests(unittest.TestCase):
                 payload = json.load(sys.stdin)
                 operation = payload["operation"]
                 if operation == "ingest":
-                    source_type = payload.get("task", {}).get("source_type", "auto")
+                    source_type = payload["task"].get("source_type")
                     if source_type == "requirement":
+                        target_path = "outputs/requirement-analysis.md"
+                        for template in payload["context"].get("output_templates", []):
+                            if template["path"].endswith("requirement-analysis.md"):
+                                target_path = template["path"]
+                                break
                         response = {
-                            "answer": "Prepared requirement ingest plan.",
+                            "answer": "Prepared requirement analysis.",
                             "answer_status": "inferred",
                             "sources": [payload["task"]["source"]],
                             "gaps": [],
                             "writeback_candidate": "yes",
-                            "writeback_target": "outputs/requirement-analysis.md",
                             "proposed_changes": [
                                 {
-                                    "path": "outputs/requirement-analysis.md",
+                                    "path": target_path,
                                     "action": "write",
-                                    "content": "# Requirement Analysis\\n\\n## Functional Requirements\\n\\n- ID: REQ-001\\n- Requirement: Example requirement\\n- Priority: high\\n",
-                                    "rationale": "Fake provider requirement fixture.",
-                                    "confidence": "tentative",
+                                    "content": "# Requirement Analysis\\n\\n## Requirement Items\\n\\n| ID | Type | Requirement | Priority | Confidence | Evidence | Related modules/entities |\\n| --- | --- | --- | --- | --- | --- | --- |\\n| REQ-001 | functional | 用户可以检索历史项目。 | high | confirmed | source | search |\\n",
+                                    "rationale": "Fake requirement ingest.",
+                                    "confidence": "inferred",
                                 }
                             ],
                         }
@@ -311,6 +334,28 @@ class AgentCliTests(unittest.TestCase):
                                 }
                             ],
                         }
+                elif operation == "synthesize":
+                    target_path = f"{payload['task']['target_theme']}/outputs/asset-match-brief.md"
+                    for template in payload["context"].get("output_templates", []):
+                        if template["path"].endswith("asset-match-brief.md"):
+                            target_path = template["path"]
+                            break
+                    response = {
+                        "answer": "Prepared synthesis outputs.",
+                        "answer_status": "inferred",
+                        "sources": [target_path],
+                        "gaps": [],
+                        "writeback_candidate": "yes",
+                        "proposed_changes": [
+                            {
+                                "path": target_path,
+                                "action": "write",
+                                "content": "# Asset Match Brief\\n\\n## Candidate Matches\\n\\n| Requirement ID | Candidate asset | Reuse level | Reuse cost | License status | Validation task |\\n| --- | --- | --- | --- | --- | --- |\\n| REQ-001 | shared search pattern | adapt | medium | review_required | build spike |\\n",
+                                "rationale": "Fake synthesis test fixture.",
+                                "confidence": "inferred",
+                            }
+                        ],
+                    }
                 elif operation == "lint":
                     response = {
                         "answer": "Lint findings triaged.",

@@ -81,7 +81,7 @@ The initializer copies packaged assets from `src/assets/` into the target direct
 - `themes/general/`, `themes/project/`, `themes/research/`
 - stable `shared/` category directories
 - `index/` entry pages
-- `inbox/to-be-filed/`
+- inbox staging directories: `to-be-filed/`, `review/`, `requirements/`, `papers/`, `articles/`, `images/`, `videos/`, `audio/`, and `source-code/`
 
 ## Helper
 

@@ -1,6 +1,6 @@
 # Skills Guide
 
-这份文档给出 `ingest`、`query`、`lint`、`reset`、`bootstrap` 五个核心技能，以及 `project-reverse` 辅助分析器的：
+这份文档给出 `ingest`、`synthesize`、`query`、`lint`、`reset`、`bootstrap` 六个核心技能，以及 `project-reverse` 辅助分析器的：
 - 触发判断规则
 - 典型用户表达
 - 标准提示词模板
@@ -20,6 +20,10 @@
 │   ├── references/
 │   └── scripts/
 ├── project-reverse/
+│   ├── SKILL.md
+│   ├── references/
+│   └── scripts/
+├── synthesize/
 │   ├── SKILL.md
 │   ├── references/
 │   └── scripts/
@@ -77,6 +81,24 @@
 - 想把文章、会议纪要、故障记录整理成 wiki
 - 想让 LLM 根据新资料更新已有主题页面
 - 想把开源或自建 Git 项目逆向分析后沉淀进 `project` 主题；此时先调用 `project-reverse` 生成证据，再由 `ingest` 编译 wiki
+- 想把需求文档结构化为目标项目的 `outputs/requirement-analysis.md`
+
+### `synthesize`
+
+适合处理“新需求如何复用历史项目和开源项目资产”的任务。它从已 ingest 的 `requirement-analysis.md` 出发，先运行确定性 `match-assets/check-license/assess-reuse/generate-outputs` 流水线，再生成目标项目侧的工程输出。
+
+典型触发词：
+- 综合历史项目
+- 复用开源项目
+- 生成实施方案
+- asset-match
+- implementation guide
+- decision brief
+
+适用问题：
+- 需要把新项目需求和历史 `reuse-candidates.md`、`shared/assets/`、开源 evidence 做匹配
+- 需要生成 `asset-match-brief.md`、`engineering-brief.md`、`implementation-guide.md`、`decision-brief.md`
+- 需要明确复用方式、复用成本、许可证/耦合/漏洞风险、验证任务和证据链接
 
 ### `project-reverse`
 

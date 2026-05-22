@@ -1,0 +1,17 @@
+{
+  "schema_version": "llm-wiki-skill-evals.v1",
+  "skill": "synthesize",
+  "cases": [
+    {
+      "id": "synthesize-requirement-asset-match",
+      "prompt": "Given a target project with outputs/requirement-analysis.md, two historical project themes, and one open-source project-reverse evidence artifact, run synthesize and produce asset-match, engineering, implementation, and decision outputs.",
+      "expected_behavior": [
+        "Reads requirement-analysis.md as demand-side input.",
+        "Uses match-assets, check-license, assess-reuse, and generate-outputs helpers before final writing.",
+        "Outputs requirement IDs, candidate assets, reuse level, reuse cost, license status, risks, validation tasks, and evidence paths.",
+        "Marks GPL, ELv2, unknown licenses, or unavailable vulnerability lookup as review/risk instead of silently recommending direct reuse.",
+        "Writes target-theme outputs and logs the operation only after explicit WRITE-KB confirmation."
+      ]
+    }
+  ]
+}

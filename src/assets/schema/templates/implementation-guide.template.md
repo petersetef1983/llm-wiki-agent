@@ -4,35 +4,40 @@
 
 - Goal:
 - Target project or workflow:
-- Entry points:
 - Confidence: tentative
 
 ## Module Boundaries
 
-| Module or step | Responsibility | Inputs | Outputs | Out of scope |
-| --- | --- | --- | --- | --- |
-| `<module>` | <responsibility> | <inputs> | <outputs> | <out-of-scope> |
+- Module:
+- Responsibility:
+- Out of scope:
+
+## Milestones
+
+| Milestone | Goal | Reuse checkpoint | Acceptance signal |
+| --- | --- | --- | --- |
+| M0 |  |  |  |
+
+## Task Breakdown
+
+- Task:
+- Depends on:
+- Evidence:
+- Acceptance signal:
+
+## Reuse And Adaptation Plan
+
+- Candidate asset:
+- Adaptation work:
+- License/coupling check:
+- Rejection criteria:
 
 ## Interfaces And Data Flow
 
 - Input:
 - Output:
 - Dependencies:
-- State or storage:
 - Failure modes:
-
-## Reuse And Adaptation Plan
-
-| Asset or pattern | Reuse level | Required changes | Validation |
-| --- | --- | --- | --- |
-| `shared/assets/<asset-slug>` | adapt | <change> | <task> |
-
-## Delivery Plan
-
-- Milestone:
-- Sequencing:
-- Migration:
-- Revert path:
 
 ## Test Strategy
 
@@ -40,17 +45,14 @@
 - Integration:
 - Evaluation:
 - Regression:
-- Operational checks:
 
-## Observability And Ops
+## Rollout Notes
 
-- Logging:
-- Metrics:
-- Alerts:
-- Runbook:
+- Migration:
+- Observability:
+- Revert path:
 
 ## Sources
 
 - Wiki:
-- Shared assets:
 - Evidence:

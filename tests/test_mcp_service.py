@@ -91,6 +91,32 @@ class LLMWikiServiceTests(unittest.TestCase):
         result = readonly.create_inbox_note(title="Draft", content="Body", confirm=CONFIRM_WRITE)
         self.assertEqual(result["status"], "disabled")
 
+    def test_synthesize_returns_pipeline_and_requires_confirmation_for_writes(self) -> None:
+        target_theme = "themes/project/00-product"
+        (self.root / target_theme / "outputs").mkdir(parents=True, exist_ok=True)
+        (self.root / target_theme / "README.md").write_text("# Product\n", encoding="utf-8")
+        (self.root / target_theme / "outputs" / "requirement-analysis.md").write_text(
+            "# Requirement Analysis\n\n"
+            "| ID | Type | Requirement | Priority | Confidence | Evidence | Related modules/entities |\n"
+            "| --- | --- | --- | --- | --- | --- | --- |\n"
+            "| REQ-001 | functional | Reuse demo asset. | high | confirmed | source | Demo Asset |\n",
+            encoding="utf-8",
+        )
+        dry = self.service.synthesize(target_theme=target_theme, top=5, search_mode="keyword")
+        self.assertEqual(dry["status"], "ok")
+        self.assertEqual(dry["mode"], "dry-run")
+        self.assertIn("pipeline", dry)
+        self.assertFalse((self.root / target_theme / "outputs" / "asset-match-brief.md").exists())
+
+        blocked = self.service.synthesize(target_theme=target_theme, top=5, search_mode="keyword", confirm="WRONG")
+        self.assertEqual(blocked["status"], "needs_confirmation")
+
+        applied = self.service.synthesize(target_theme=target_theme, top=5, search_mode="keyword", confirm=CONFIRM_WRITE)
+        self.assertEqual(applied["status"], "ok")
+        self.assertEqual(applied["mode"], "applied")
+        self.assertTrue((self.root / target_theme / "outputs" / "asset-match-brief.md").exists())
+        self.assertTrue((self.root / "log.md").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

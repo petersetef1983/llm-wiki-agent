@@ -9,6 +9,7 @@ from .init import register_init
 from .lint import register_lint
 from .query import register_query
 from .serve import register_serve
+from .synthesize import register_synthesize
 from .sync import register_sync
 from .upgrade import register_upgrade
 
@@ -19,6 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     register_init(subparsers)
     register_ingest(subparsers)
     register_query(subparsers)
+    register_synthesize(subparsers)
     register_lint(subparsers)
     register_sync(subparsers)
     register_doctor(subparsers)

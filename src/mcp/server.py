@@ -88,6 +88,11 @@ def create_server(
         """Aggregate indexed pages by one frontmatter field."""
         return service.aggregate(field=field, limit=limit)
 
+    @mcp.tool()
+    def kb_synthesize(target_theme: str, top: int = 20, search_mode: str = "auto", confirm: str = "") -> dict[str, Any]:
+        """Run deterministic demand synthesis for a target theme; writes require confirm=\"WRITE-KB\"."""
+        return service.synthesize(target_theme=target_theme, top=top, search_mode=search_mode, confirm=confirm)
+
     if not readonly:
 
         @mcp.tool()

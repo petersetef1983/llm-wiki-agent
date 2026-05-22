@@ -2,7 +2,7 @@
 
 Use the first available Python command in this order: `KB_PYTHON`, `python`, `py -3`, `python3`, then `conda run -n llm-wiki python` only as a fallback.
 
-Every helper appends an activity record to `log.md`.
+Most write-oriented helpers append an activity record to `log.md`. Read-only classification commands do not write durable wiki state.
 
 ## Inventory
 
@@ -11,6 +11,15 @@ Use when destination scope is unclear.
 ```bash
 <PYTHON_CMD> .agents/skills/ingest/scripts/kb_ingest_helper.py --root . inventory
 <PYTHON_CMD> .agents/skills/ingest/scripts/kb_ingest_helper.py --root . inventory --format json
+```
+
+## Classify Inbox
+
+Use when the inbox contains mixed requirements, papers, articles, media, or source files and the agent needs routing hints before ingest. This command is read-only: it does not move files and does not update durable wiki pages.
+
+```bash
+<PYTHON_CMD> .agents/skills/ingest/scripts/kb_ingest_helper.py --root . classify-inbox
+<PYTHON_CMD> .agents/skills/ingest/scripts/kb_ingest_helper.py --root . classify-inbox --format json
 ```
 
 ## Suggest Theme Directory
@@ -35,6 +44,7 @@ Use when a file or URL needs a markdown/json evidence artifact before wiki maint
 
 ```bash
 <PYTHON_CMD> .agents/skills/ingest/scripts/kb_ingest_helper.py --root . extract-document --input inbox/to-be-filed/example.pdf --output themes/general/00-topic/outputs/document-intake/example.extracted.md --format markdown
+<PYTHON_CMD> .agents/skills/ingest/scripts/kb_ingest_helper.py --root . extract-document --type requirement --target-theme themes/project/00-target --input inbox/requirements/prd.md --output themes/project/00-target/outputs/requirement-analysis.md --format markdown
 ```
 
 Notes:
@@ -42,28 +52,8 @@ Notes:
 - `markitdown` is the primary converter.
 - Local video may require `ffmpeg`.
 - URL transcript fallback depends on available transcript tooling.
+- `--type requirement` emits a deterministic `requirement-analysis.md` draft with stable IDs, priority, confidence, evidence links, and related entities.
 - The artifact is evidence only; the LLM still updates the wiki.
-
-## Requirement Ingest
-
-Use when the source is a product requirement document, PRD, SRS, or similar demand-side specification and you want a structured requirement digest in addition to normal wiki maintenance.
-
-```bash
-llm-wiki ingest inbox/to-be-filed/product-requirements.docx --root . --type requirement --provider openai
-llm-wiki ingest inbox/to-be-filed/product-requirements.docx --root . --type requirement --provider openai --confirm WRITE-KB
-```
-
-Expected write-back target:
-
-- `outputs/requirement-analysis.md`
-
-The requirement analysis should at minimum include:
-
-- functional requirements
-- non-functional constraints
-- technical constraints
-- acceptance criteria
-- key entities
 
 ## Project Reverse Git Analysis
 
@@ -128,19 +118,6 @@ Notes:
   --write-focused-artifacts
 ```
 
-Enable OSS due diligence when needed:
-
-```bash
-<PYTHON_CMD> .agents/skills/project-reverse/scripts/project_reverse_helper.py analyze \
-  --repo https://github.com/iii-hq/iii \
-  --output themes/project/01-iii/outputs/document-intake/project-reverse-analysis.json \
-  --source-anchor themes/project/01-iii/sources/project-reverse-source-anchor.md \
-  --write-focused-artifacts \
-  --open-source \
-  --community-health \
-  --vulnerabilities
-```
-
 Optional ref:
 
 ```bash
@@ -182,7 +159,6 @@ Notes:
 - The LLM must still write durable project wiki pages, API registry, graph links, `outputs/sync-status.md`, and engineering outputs.
 - If a source anchor already exists, timestamp mode writes a sibling anchor rather than overwriting the existing anchor.
 - Diff evidence includes `affected_pages` and `next_update_scope`; update only those durable pages unless review finds wider drift.
-- Hosted OSS metadata and OSV queries are best-effort. Expect warnings for private repos, rate limits, missing tokens, or dependencies without pinned versions.
 - The legacy `extract-git-repo` helper remains available for lightweight snapshots, but full project ingest should use `project-reverse`.
 
 ## Runtime Query And Freshness Support

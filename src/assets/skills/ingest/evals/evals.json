@@ -69,8 +69,8 @@
     },
     {
       "id": 12,
-      "prompt": "请把这份 PRD 以 `--type requirement` ingest 到知识库，不要只保留抽取后的文档；需要把功能需求、非功能约束、技术约束、验收标准和关键实体整理成结构化输出。",
-      "expected_output": "当 ingest 明确指定 requirement 类型时，结果应包含 `outputs/requirement-analysis.md`，并按结构化需求分析模板沉淀功能需求、非功能约束、技术约束、验收标准和关键实体，同时保留置信度或不确定项。",
+      "prompt": "请把 `inbox/requirements/crm-prd.md` 作为需求文档 ingest 到 `themes/project/00-crm`，先生成确定性的 `outputs/requirement-analysis.md`，每个需求项都要有稳定 ID、优先级、置信度、证据链接和相关实体。",
+      "expected_output": "使用 `--type requirement` 或 `extract-document --type requirement` 生成 theme-local `outputs/requirement-analysis.md`，包含 REQ/NFR/TECH/AC 项、Priority、Confidence、Evidence 和 Related modules/entities，再由 LLM 做必要补充。",
       "files": []
     }
   ]

@@ -9,6 +9,7 @@ import re
 import sys
 import textwrap
 import zipfile
+from collections import Counter
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from importlib import import_module
@@ -102,6 +103,132 @@ CONCEPT_HINTS = (
     "principle",
 )
 ENTITY_HINTS = ("judge", "agent", "model", "service", "system", "platform", "pipeline", "tool", "framework", "dataset", "protocol", "api", "sdk")
+INBOX_TEXT_EXTENSIONS = {
+    ".adoc",
+    ".csv",
+    ".doc",
+    ".docx",
+    ".json",
+    ".md",
+    ".mdx",
+    ".pdf",
+    ".rst",
+    ".tex",
+    ".tsv",
+    ".txt",
+    ".xls",
+    ".xlsx",
+    ".yaml",
+    ".yml",
+}
+INBOX_SOURCE_CODE_EXTENSIONS = {
+    ".astro",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".cs",
+    ".css",
+    ".go",
+    ".graphql",
+    ".h",
+    ".hpp",
+    ".html",
+    ".java",
+    ".js",
+    ".jsx",
+    ".kt",
+    ".mjs",
+    ".mts",
+    ".php",
+    ".proto",
+    ".py",
+    ".rb",
+    ".rs",
+    ".sh",
+    ".sql",
+    ".svelte",
+    ".ts",
+    ".tsx",
+    ".vue",
+}
+INBOX_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tif", ".tiff", ".heic"}
+INBOX_VIDEO_EXTENSIONS = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v"}
+INBOX_AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg"}
+INBOX_ARCHIVE_EXTENSIONS = {".zip", ".tar", ".tgz", ".gz", ".7z", ".rar"}
+INBOX_MANIFEST_NAMES = {
+    "package.json",
+    "pyproject.toml",
+    "cargo.toml",
+    "go.mod",
+    "pom.xml",
+    "build.gradle",
+    "requirements.txt",
+    "dockerfile",
+    "makefile",
+}
+REQUIREMENT_HINTS = (
+    "需求",
+    "需求文档",
+    "需求说明",
+    "需求说明书",
+    "产品需求",
+    "业务需求",
+    "功能需求",
+    "非功能",
+    "验收",
+    "验收标准",
+    "验收条件",
+    "用户故事",
+    "用例",
+    "权限矩阵",
+    "接口需求",
+    "prd",
+    "srs",
+    "brd",
+    "mrd",
+    "requirement",
+    "requirements",
+    "spec",
+    "acceptance criteria",
+    "user story",
+    "user stories",
+    "must have",
+    "should have",
+)
+PAPER_HINTS = (
+    "abstract",
+    "references",
+    "doi",
+    "arxiv",
+    "论文",
+    "摘要",
+    "参考文献",
+    "实验",
+    "方法",
+)
+ARTICLE_HINTS = (
+    "article",
+    "blog",
+    "post",
+    "essay",
+    "newsletter",
+    "文章",
+    "博客",
+    "专栏",
+    "观点",
+)
+LEARNING_HINTS = (
+    "course",
+    "tutorial",
+    "lesson",
+    "slides",
+    "study",
+    "学习",
+    "教程",
+    "课程",
+    "课件",
+    "笔记",
+)
 
 
 COMMON_SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "shared" / "scripts"
@@ -1351,8 +1478,6 @@ def build_engineering_brief_markdown(title: str) -> str:
     return (
         "# Engineering Brief\n\n"
         "## Summary\n\n"
-        "- Problem or opportunity:\n"
-        "- Target project or theme:\n"
         "- Scope:\n"
         "- Audience:\n"
         "- Confidence: tentative\n\n"
@@ -1360,30 +1485,20 @@ def build_engineering_brief_markdown(title: str) -> str:
         "- Confirmed:\n"
         "- Inferred:\n"
         "- Tentative:\n\n"
-        "- Reuse signal:\n\n"
         "## Constraints\n\n"
         "- Architecture:\n"
-        "- Data and state:\n"
-        "- Integration and dependencies:\n"
-        "- Operations and security:\n"
-        "- Evaluation and rollout:\n\n"
-        "## Candidate Assets\n\n"
-        "| Asset | Source | Fit | Adaptation cost | Main risk |\n"
-        "| --- | --- | --- | --- | --- |\n"
-        "| `shared/assets/<asset-slug>` | <project-or-theme> | partial | medium | <risk> |\n\n"
+        "- Data:\n"
+        "- Operations:\n"
+        "- Evaluation:\n\n"
         "## Risks\n\n"
         "- Risk:\n"
-        "- Trigger:\n"
-        "- Mitigation:\n"
-        "- Owner:\n\n"
+        "- Mitigation:\n\n"
         "## Recommended Next Actions\n\n"
         "- Action:\n"
-        "- Priority:\n"
         "- Owner:\n"
         "- Acceptance signal:\n\n"
         "## Sources\n\n"
         "- Wiki:\n"
-        "- Shared assets:\n"
         "- Evidence:\n"
     )
 
@@ -1394,72 +1509,27 @@ def build_implementation_guide_markdown(title: str) -> str:
         "## Summary\n\n"
         "- Goal:\n"
         "- Target project or workflow:\n"
-        "- Entry points:\n"
         "- Confidence: tentative\n\n"
         "## Module Boundaries\n\n"
-        "| Module or step | Responsibility | Inputs | Outputs | Out of scope |\n"
-        "| --- | --- | --- | --- | --- |\n"
-        "| `<module>` | <responsibility> | <inputs> | <outputs> | <out-of-scope> |\n\n"
+        "- Module:\n"
+        "- Responsibility:\n"
+        "- Out of scope:\n\n"
         "## Interfaces And Data Flow\n\n"
         "- Input:\n"
         "- Output:\n"
         "- Dependencies:\n"
-        "- State or storage:\n"
         "- Failure modes:\n\n"
-        "## Reuse And Adaptation Plan\n\n"
-        "| Asset or pattern | Reuse level | Required changes | Validation |\n"
-        "| --- | --- | --- | --- |\n"
-        "| `shared/assets/<asset-slug>` | adapt | <change> | <task> |\n\n"
-        "## Delivery Plan\n\n"
-        "- Milestone:\n"
-        "- Sequencing:\n"
-        "- Migration:\n"
-        "- Revert path:\n\n"
         "## Test Strategy\n\n"
         "- Unit:\n"
         "- Integration:\n"
         "- Evaluation:\n"
-        "- Regression:\n"
-        "- Operational checks:\n\n"
-        "## Observability And Ops\n\n"
-        "- Logging:\n"
-        "- Metrics:\n"
-        "- Alerts:\n"
-        "- Runbook:\n\n"
+        "- Regression:\n\n"
+        "## Rollout Notes\n\n"
+        "- Migration:\n"
+        "- Observability:\n"
+        "- Revert path:\n\n"
         "## Sources\n\n"
         "- Wiki:\n"
-        "- Shared assets:\n"
-        "- Evidence:\n"
-    )
-
-
-def build_asset_match_brief_markdown(title: str) -> str:
-    return (
-        "# Asset Match Brief\n\n"
-        "## Summary\n\n"
-        "- Target project or requirement:\n"
-        "- Matching scope:\n"
-        "- Confidence: tentative\n\n"
-        "## Demand Snapshot\n\n"
-        "- Functional need:\n"
-        "- Non-functional constraints:\n"
-        "- Tech stack expectations:\n"
-        "- License or governance boundary:\n\n"
-        "## Candidate Matches\n\n"
-        "| Asset | Source | Functional fit | Stack fit | Reuse level | Adaptation cost | Main risk | Validation task |\n"
-        "| --- | --- | --- | --- | --- | --- | --- | --- |\n"
-        "| `shared/assets/<asset-slug>` | <project-or-theme> | partial | compatible | adapt | medium | <risk> | <task> |\n\n"
-        "## Rejected Or Deferred Matches\n\n"
-        "| Candidate | Reason | Revisit when |\n"
-        "| --- | --- | --- |\n"
-        "| <candidate> | <reason> | <condition> |\n\n"
-        "## Recommendation\n\n"
-        "- Preferred path:\n"
-        "- Why:\n"
-        "- Stop conditions:\n\n"
-        "## Sources\n\n"
-        "- Wiki:\n"
-        "- Shared assets:\n"
         "- Evidence:\n"
     )
 
@@ -1509,6 +1579,59 @@ def build_backlog_markdown(title: str) -> str:
         "## Open Risks\n\n"
         "- Risk:\n"
         "- Next check:\n\n"
+        "## Sources\n\n"
+        "- Wiki:\n"
+        "- Evidence:\n"
+    )
+
+
+def build_requirement_analysis_markdown(title: str) -> str:
+    return (
+        "# Requirement Analysis\n\n"
+        "## Summary\n\n"
+        "- Source:\n"
+        f"- Target theme: {title}\n"
+        "- Scope:\n"
+        "- Confidence: tentative\n\n"
+        "## Requirement Items\n\n"
+        "| ID | Type | Requirement | Priority | Confidence | Evidence | Related modules/entities |\n"
+        "| --- | --- | --- | --- | --- | --- | --- |\n"
+        "| REQ-001 | functional |  | medium | tentative |  |  |\n\n"
+        "## Functional Requirements\n\n"
+        "- ID: REQ-001\n"
+        "- Requirement:\n"
+        "- Priority: medium\n"
+        "- Description:\n"
+        "- Evidence:\n"
+        "- Confidence: tentative\n"
+        "- Related modules/entities:\n\n"
+        "## Non-Functional Constraints\n\n"
+        "- ID: NFR-001\n"
+        "- Constraint:\n"
+        "- Category:\n"
+        "- Target or threshold:\n"
+        "- Evidence:\n"
+        "- Confidence: tentative\n"
+        "- Related modules/entities:\n\n"
+        "## Technical Constraints\n\n"
+        "- ID: TECH-001\n"
+        "- Constraint:\n"
+        "- Impacted area:\n"
+        "- Reason:\n"
+        "- Evidence:\n"
+        "- Confidence: tentative\n"
+        "- Related modules/entities:\n\n"
+        "## Acceptance Criteria\n\n"
+        "- ID: AC-001\n"
+        "- Criterion:\n"
+        "- Related requirement:\n"
+        "- Verification approach:\n"
+        "- Evidence:\n"
+        "- Confidence: tentative\n\n"
+        "## Open Questions\n\n"
+        "- Question:\n"
+        "- Blocking impact:\n"
+        "- Next step:\n\n"
         "## Sources\n\n"
         "- Wiki:\n"
         "- Evidence:\n"
@@ -1589,7 +1712,6 @@ def build_theme_scaffold_files(
         theme_dir / "outputs" / "document-intake" / "README.md": build_document_intake_readme_markdown(title),
         theme_dir / "outputs" / "engineering-brief.md": build_engineering_brief_markdown(title),
         theme_dir / "outputs" / "implementation-guide.md": build_implementation_guide_markdown(title),
-        theme_dir / "outputs" / "asset-match-brief.md": build_asset_match_brief_markdown(title),
         theme_dir / "outputs" / "decision-brief.md": build_decision_brief_markdown(title),
         theme_dir / "outputs" / "backlog.md": build_backlog_markdown(title),
     }
@@ -1617,6 +1739,7 @@ def build_theme_scaffold_files(
                 theme_dir / "stack" / "data.md": build_project_stack_markdown(title, "Data"),
                 theme_dir / "stack" / "infra.md": build_project_stack_markdown(title, "Infra"),
                 theme_dir / "stack" / "tools.md": build_project_stack_markdown(title, "Tools"),
+                theme_dir / "outputs" / "requirement-analysis.md": build_requirement_analysis_markdown(title),
                 theme_dir / "outputs" / "weekly-summary.md": build_project_weekly_summary_markdown(title),
                 theme_dir / "outputs" / "next-steps.md": build_project_next_steps_markdown(title),
             }
@@ -1785,6 +1908,192 @@ def collect_inbox_files(root: Path) -> dict[str, list[str]]:
             if item.is_file()
         )
     return result
+
+
+def classify_inbox(root: Path) -> dict[str, Any]:
+    """Return read-only routing suggestions for inbox items."""
+    inbox_dir = root / "inbox"
+    if not inbox_dir.exists():
+        return {
+            "root": str(root),
+            "items": [],
+            "counts": {"content_kind": {}, "source_type": {}, "suggested_action": {}},
+            "high_confidence_requirements": [],
+            "review": [],
+        }
+
+    items = [
+        classify_inbox_item(root, path)
+        for path in sorted((item for item in inbox_dir.rglob("*") if item.is_file()), key=lambda item: item.as_posix().lower())
+    ]
+    content_counts = Counter(str(item["content_kind"]) for item in items)
+    source_counts = Counter(str(item["source_type"]) for item in items)
+    action_counts = Counter(str(item["suggested_action"]) for item in items)
+    return {
+        "root": str(root),
+        "items": items,
+        "counts": {
+            "content_kind": dict(content_counts),
+            "source_type": dict(source_counts),
+            "suggested_action": dict(action_counts),
+        },
+        "high_confidence_requirements": [
+            item["path"]
+            for item in items
+            if item["content_kind"] == "requirement" and item["confidence"] in {"high", "confirmed"}
+        ],
+        "review": [item["path"] for item in items if item["suggested_action"] == "review"],
+    }
+
+
+def classify_inbox_item(root: Path, path: Path) -> dict[str, Any]:
+    rel = path.relative_to(root).as_posix() if path.is_absolute() and path.resolve().is_relative_to(root.resolve()) else path.as_posix()
+    source_type = detect_inbox_source_type(path)
+    preview = inbox_text_preview(path, source_type)
+    scores = score_inbox_content_kind(rel, path, source_type, preview)
+    content_kind = max(scores, key=lambda key: scores[key]) if scores else "unknown"
+    score = scores.get(content_kind, 0.0)
+    confidence = inbox_confidence(score)
+    action = inbox_suggested_action(rel, source_type, content_kind, score)
+    reasons = inbox_classification_reasons(rel, source_type, content_kind, scores, preview)
+    return {
+        "path": rel,
+        "source_type": source_type,
+        "content_kind": content_kind,
+        "confidence": confidence,
+        "score": round(score, 2),
+        "suggested_action": action,
+        "reasons": reasons[:6],
+    }
+
+
+def detect_inbox_source_type(path: Path) -> str:
+    suffix = path.suffix.lower()
+    name = path.name.lower()
+    if suffix in INBOX_IMAGE_EXTENSIONS:
+        return "image"
+    if suffix in INBOX_VIDEO_EXTENSIONS:
+        return "video"
+    if suffix in INBOX_AUDIO_EXTENSIONS:
+        return "audio"
+    if suffix in INBOX_ARCHIVE_EXTENSIONS:
+        return "archive"
+    if suffix in INBOX_SOURCE_CODE_EXTENSIONS or name in INBOX_MANIFEST_NAMES:
+        return "source-code"
+    if suffix in INBOX_TEXT_EXTENSIONS:
+        return "document"
+    return "unknown"
+
+
+def inbox_text_preview(path: Path, source_type: str, max_chars: int = 12_000) -> str:
+    if source_type not in {"document", "source-code", "unknown"}:
+        return ""
+    if path.suffix.lower() in {".pdf", ".doc", ".docx", ".xls", ".xlsx"}:
+        return ""
+    try:
+        return read_text(path)[:max_chars]
+    except OSError:
+        return ""
+
+
+def score_inbox_content_kind(rel: str, path: Path, source_type: str, preview: str) -> dict[str, float]:
+    haystack = f"{rel}\n{path.name}\n{preview}".lower()
+    rel_lower = rel.lower()
+    scores: dict[str, float] = {
+        "requirement": 0.0,
+        "paper": 0.0,
+        "article": 0.0,
+        "learning-material": 0.0,
+        "source-code": 0.0,
+        "image": 0.0,
+        "video": 0.0,
+        "unknown": 0.05,
+    }
+    if "/requirements/" in rel_lower or "\\requirements\\" in rel_lower:
+        scores["requirement"] += 0.45
+    if "/papers/" in rel_lower or "\\papers\\" in rel_lower:
+        scores["paper"] += 0.45
+    if "/articles/" in rel_lower or "\\articles\\" in rel_lower:
+        scores["article"] += 0.4
+    if "/source-code/" in rel_lower or "\\source-code\\" in rel_lower:
+        scores["source-code"] += 0.45
+    if ("/images/" in rel_lower or "\\images\\" in rel_lower or "/media/images/" in rel_lower or "\\media\\images\\" in rel_lower) and source_type == "image":
+        scores["image"] += 0.35
+    if ("/videos/" in rel_lower or "\\videos\\" in rel_lower or "/media/videos/" in rel_lower or "\\media\\videos\\" in rel_lower) and source_type == "video":
+        scores["video"] += 0.35
+    if "/audio/" in rel_lower or "\\audio\\" in rel_lower or "/media/audio/" in rel_lower or "\\media\\audio\\" in rel_lower:
+        scores["unknown"] += 0.2
+
+    scores["requirement"] += min(0.45, 0.08 * keyword_hits(haystack, REQUIREMENT_HINTS))
+    scores["paper"] += min(0.4, 0.08 * keyword_hits(haystack, PAPER_HINTS))
+    scores["article"] += min(0.3, 0.07 * keyword_hits(haystack, ARTICLE_HINTS))
+    scores["learning-material"] += min(0.3, 0.07 * keyword_hits(haystack, LEARNING_HINTS))
+
+    if re.search(r"(?im)^\s*(功能需求|非功能|验收标准|acceptance criteria|requirements?)\s*[:#]", preview):
+        scores["requirement"] += 0.18
+    if re.search(r"(?im)^\s*(abstract|摘要)\s*[:#]?", preview) and re.search(r"(?im)^\s*(references|参考文献)\s*[:#]?", preview):
+        scores["paper"] += 0.22
+    if source_type == "source-code":
+        scores["source-code"] += 0.65
+    elif source_type == "image":
+        scores["image"] += 0.85
+    elif source_type == "video":
+        scores["video"] += 0.85
+    elif source_type == "audio":
+        scores["unknown"] += 0.25
+    elif source_type == "archive":
+        scores["unknown"] += 0.2
+
+    if scores["requirement"] < 0.25 and re.search(r"\b(req|prd|srs|brd|mrd)[-_ ]?\d*\b", path.stem.lower()):
+        scores["requirement"] += 0.25
+    return {key: min(value, 0.97) for key, value in scores.items()}
+
+
+def keyword_hits(text: str, keywords: tuple[str, ...]) -> int:
+    return sum(1 for keyword in keywords if keyword.lower() in text)
+
+
+def inbox_confidence(score: float) -> str:
+    if score >= 0.88:
+        return "confirmed"
+    if score >= 0.72:
+        return "high"
+    if score >= 0.45:
+        return "medium"
+    return "low"
+
+
+def inbox_suggested_action(rel: str, source_type: str, content_kind: str, score: float) -> str:
+    rel_lower = rel.lower()
+    if "/review/" in rel_lower or "\\review\\" in rel_lower:
+        return "review"
+    if content_kind == "requirement":
+        return "ingest_requirement" if score >= 0.72 else "review"
+    if content_kind in {"paper", "article", "learning-material"} and score >= 0.45:
+        return "ingest_to_theme"
+    if content_kind == "source-code":
+        return "project_reverse_or_source_ingest"
+    if source_type in {"image", "video", "audio"}:
+        return "extract_media_then_ingest"
+    return "review"
+
+
+def inbox_classification_reasons(rel: str, source_type: str, content_kind: str, scores: dict[str, float], preview: str) -> list[str]:
+    reasons = [f"source_type={source_type}"]
+    rel_lower = rel.lower()
+    if f"/{content_kind}s/" in rel_lower or f"\\{content_kind}s\\" in rel_lower or f"/media/{content_kind}s/" in rel_lower or f"\\media\\{content_kind}s\\" in rel_lower:
+        reasons.append(f"path_hint={content_kind}")
+    if content_kind == "requirement" and keyword_hits(f"{rel}\n{preview}".lower(), REQUIREMENT_HINTS):
+        reasons.append("requirement_keywords_detected")
+    if content_kind == "paper" and keyword_hits(f"{rel}\n{preview}".lower(), PAPER_HINTS):
+        reasons.append("paper_keywords_detected")
+    if content_kind == "source-code":
+        reasons.append("code_or_manifest_extension")
+    if content_kind in {"image", "video"}:
+        reasons.append("media_extension")
+    if scores.get(content_kind, 0.0) < 0.72:
+        reasons.append("low_confidence_route")
+    return reasons
 
 
 def read_recent_updates(root: Path, limit: int = 10) -> list[str]:
@@ -2024,6 +2333,28 @@ def print_inventory_text(root: Path, themes: list[ThemeSummary], inbox_files: di
     else:
         for item in recent_updates:
             print(item)
+
+
+def print_inbox_classification_text(payload: dict[str, Any]) -> None:
+    print(f"Inbox Classification: {payload.get('root')}")
+    print("")
+    counts = payload.get("counts", {})
+    print("Content Kinds:")
+    for name, count in sorted((counts.get("content_kind") or {}).items()):
+        print(f"- {name}: {count}")
+    print("")
+    print("Items:")
+    items = payload.get("items", [])
+    if not items:
+        print("- No inbox files found.")
+    for item in items:
+        print(
+            f"- {item['path']}: source_type={item['source_type']} "
+            f"content_kind={item['content_kind']} confidence={item['confidence']} "
+            f"action={item['suggested_action']}"
+        )
+        if item.get("reasons"):
+            print(f"  reasons: {', '.join(item['reasons'])}")
 
 
 

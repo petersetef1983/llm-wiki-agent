@@ -23,6 +23,13 @@ DEFAULT_INGEST_OUTPUT_TEMPLATE_PATHS = [
     "outputs/reuse-candidates.md",
     "outputs/asset-match-brief.md",
 ]
+SYNTHESIZE_OUTPUT_TEMPLATE_PATHS = [
+    "asset-match-brief.md",
+    "engineering-brief.md",
+    "implementation-guide.md",
+    "decision-brief.md",
+    "backlog.md",
+]
 BASELINE_QUERY_PAGES = [
     "index/home.md",
     "index/themes.md",
@@ -55,26 +62,29 @@ def build_ingest_request(
     source: str,
     *,
     ingest_type: str = "auto",
+    target_theme: str = "",
     git_analysis_options: dict[str, Any] | None = None,
 ) -> AgentRequest:
     kb_root = root.resolve()
     service = LLMWikiService(kb_root)
     normalized_type = ingest_type if ingest_type in INGEST_TYPES else "auto"
+    normalized_target_theme = _clean_theme_path(target_theme)
     instructions = _skill_text(kb_root, "ingest", "SKILL.md") + "\n\n" + _skill_text(kb_root, "ingest", "references/workflow.md")
-    output_templates = _build_ingest_output_templates(kb_root, normalized_type)
+    output_templates = _build_ingest_output_templates(kb_root, normalized_type, normalized_target_theme)
     instructions += (
         "\n\n## Generate Outputs\n"
-        "- Use `context.generate_outputs.templates` as the preferred output skeletons during synthesis.\n"
-        "- When the source changes engineering guidance, propose or update the matching `outputs/*.md` pages instead of leaving conclusions only in chat.\n"
+        "- Use `context.generate_outputs.templates` as preferred skeletons for proposed engineering outputs.\n"
+        "- Prefer target-theme-local outputs when `task.target_theme` is set.\n"
         "- Keep output claims linked to durable wiki pages, shared assets, or evidence artifacts.\n"
     )
     if normalized_type == "requirement":
+        requirement_path = _theme_output_path(normalized_target_theme, "requirement-analysis.md")
         instructions += (
             "\n\n## Requirement Ingest Override\n"
             "- Treat the source as a requirement document instead of a generic note.\n"
             "- Extract functional requirements, non-functional constraints, technical constraints, acceptance criteria, and key entities.\n"
-            "- Propose a write to `outputs/requirement-analysis.md` using the provided template.\n"
-            "- Keep confidence explicit for each major requirement or section.\n"
+            f"- Propose a write to `{requirement_path}` using the provided template.\n"
+            "- Give each requirement a stable ID, priority, confidence, evidence link, and related modules/entities when known.\n"
         )
     return AgentRequest(
         operation="ingest",
@@ -82,6 +92,7 @@ def build_ingest_request(
         task={
             "source": source,
             "source_type": normalized_type,
+            "target_theme": normalized_target_theme,
             "git_analysis_options": git_analysis_options or {},
         },
         instructions=instructions,
@@ -96,6 +107,49 @@ def build_ingest_request(
                 "guide": _schema_text(kb_root, "output-format.md"),
                 "templates": output_templates,
             },
+            "output_templates": output_templates,
+        },
+    )
+
+
+def build_synthesize_request(root: Path, target_theme: str, *, top: int = 20, search_mode: str = "auto") -> AgentRequest:
+    kb_root = root.resolve()
+    service = LLMWikiService(kb_root)
+    normalized_target_theme = _clean_theme_path(target_theme)
+    if not normalized_target_theme:
+        raise ValueError("synthesize requires --target-theme under themes/<category>/<theme>")
+    helper = _load_synthesize_module(kb_root)
+    synthesis_context = helper.collect_synthesis_context(kb_root, normalized_target_theme, max_chars=MAX_PAGE_CHARS)
+    synthesis_pipeline = helper.build_synthesis_pipeline(kb_root, normalized_target_theme, top=top, max_chars=MAX_PAGE_CHARS, search_mode=search_mode)
+    output_templates = [
+        {
+            "path": _theme_output_path(normalized_target_theme, name),
+            "content": _schema_text(kb_root, f"templates/{name.replace('.md', '.template.md')}"),
+        }
+        for name in SYNTHESIZE_OUTPUT_TEMPLATE_PATHS
+    ]
+    output_templates = [item for item in output_templates if item["content"].strip()]
+    instructions = _skill_text(kb_root, "synthesize", "SKILL.md") + "\n\n" + _skill_text(kb_root, "synthesize", "references/workflow.md")
+    instructions += (
+        "\n\n## Synthesis Contract\n"
+        "- Generate target-theme-local outputs only; do not rewrite raw sources.\n"
+        "- Treat `requirement-analysis.md` as demand-side input, not as a proven reusable asset.\n"
+        "- Use `context.synthesis_pipeline` as the deterministic baseline for matches, license risks, reuse cost, validation tasks, wikilinks, and promotion proposals.\n"
+        "- Recommend shared asset or pattern promotion only when evidence is cross-theme and source-backed; include such writes only when confidence is explicit.\n"
+        "- Flag license, coupling, freshness, and vulnerability uncertainty as risks rather than legal conclusions.\n"
+    )
+    search_payload = service.search(query=normalized_target_theme, mode="auto", top=top, allow_fallback=True)
+    return AgentRequest(
+        operation="synthesize",
+        root=kb_root,
+        task={"target_theme": normalized_target_theme},
+        instructions=instructions,
+        context={
+            "manifest": service.manifest_summary(),
+            "target_theme": normalized_target_theme,
+            "search": search_payload,
+            "synthesis": synthesis_context,
+            "synthesis_pipeline": synthesis_pipeline,
             "output_templates": output_templates,
         },
     )
@@ -191,10 +245,12 @@ def _directory_sample(path: Path) -> list[str]:
 def _ingest_inventory(root: Path) -> dict[str, Any]:
     core = _load_ingest_core(root)
     try:
+        inbox_classification = core.classify_inbox(root) if hasattr(core, "classify_inbox") else {}
         themes = core.collect_theme_summaries(root)
         return {
             "themes": [asdict(theme) for theme in themes],
             "inbox": core.collect_inbox_files(root),
+            "inbox_classification": inbox_classification,
             "recent_updates": core.read_recent_updates(root),
             "next_theme_numbers": {
                 category: core.next_theme_number(root, category)
@@ -213,13 +269,18 @@ def _scan_reuse(root: Path) -> dict[str, Any]:
         return {"status": "error", "error": str(exc)}
 
 
-def _build_ingest_output_templates(root: Path, ingest_type: str) -> list[dict[str, str]]:
+def _build_ingest_output_templates(root: Path, ingest_type: str, target_theme: str = "") -> list[dict[str, str]]:
     templates: list[dict[str, str]] = []
     for path in DEFAULT_INGEST_OUTPUT_TEMPLATE_PATHS:
-        template_name = PurePosixPath(path).name.replace(".md", ".template.md")
-        _append_output_template(templates, root, path, f"templates/{template_name}")
+        name = PurePosixPath(path).name
+        _append_output_template(templates, root, _theme_output_path(target_theme, name), f"templates/{name.replace('.md', '.template.md')}")
     if ingest_type == "requirement":
-        _append_output_template(templates, root, "outputs/requirement-analysis.md", "templates/requirement-analysis.template.md")
+        _append_output_template(
+            templates,
+            root,
+            _theme_output_path(target_theme, "requirement-analysis.md"),
+            "templates/requirement-analysis.template.md",
+        )
     return templates
 
 
@@ -230,9 +291,8 @@ def _append_output_template(
     schema_rel_path: str,
 ) -> None:
     content = _schema_text(root, schema_rel_path)
-    if not content.strip():
-        return
-    templates.append({"path": output_path, "content": content})
+    if content.strip():
+        templates.append({"path": output_path, "content": content})
 
 
 def _extract_document(root: Path, path: Path) -> dict[str, Any] | None:
@@ -250,6 +310,26 @@ def _extract_document(root: Path, path: Path) -> dict[str, Any] | None:
 
 def _load_ingest_core(root: Path) -> Any:
     return _load_ingest_module(root, "kb_ingest_core.py", "llm_wiki_agent_ingest_core")
+
+
+def _load_synthesize_module(root: Path) -> Any:
+    scripts_dir = root / ".agents" / "skills" / "synthesize" / "scripts"
+    filename = "kb_synthesize_helper.py"
+    if not (scripts_dir / filename).exists():
+        scripts_dir = Path(str(assets_root() / "skills" / "synthesize" / "scripts"))
+    module_name = "llm_wiki_agent_synthesize_helper"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    existing = sys.modules.get(module_name)
+    if existing is not None:
+        return existing
+    spec = importlib.util.spec_from_file_location(module_name, scripts_dir / filename)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"could not load synthesize helper: {filename}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def _load_ingest_module(root: Path, filename: str, module_name: str) -> Any:
@@ -288,6 +368,35 @@ def _schema_text(root: Path, rel_path: str) -> str:
     if not path.is_file():
         return ""
     return path.read_text(encoding="utf-8")
+
+
+def _clean_theme_path(value: str) -> str:
+    text = (value or "").strip().replace("\\", "/").strip("/")
+    if not text:
+        return ""
+    if text.endswith("/README.md"):
+        text = text.removesuffix("/README.md")
+    elif text.endswith("/README"):
+        text = text.removesuffix("/README")
+    elif text.endswith(".md"):
+        text = text.removesuffix(".md")
+    try:
+        rel = PurePosixPath(text)
+    except ValueError:
+        return ""
+    if rel.is_absolute() or any(part in {"", ".", ".."} for part in rel.parts):
+        return ""
+    if len(rel.parts) < 3 or rel.parts[0] != "themes":
+        return ""
+    return rel.as_posix()
+
+
+def _theme_output_path(target_theme: str, output_name: str) -> str:
+    name = PurePosixPath(output_name).name
+    clean_theme = _clean_theme_path(target_theme)
+    if clean_theme:
+        return f"{clean_theme}/outputs/{name}"
+    return f"outputs/{name}"
 
 
 def _read_text_limited(path: Path, limit: int) -> str:

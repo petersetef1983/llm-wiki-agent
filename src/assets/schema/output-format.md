@@ -38,7 +38,6 @@ Recommended output pages:
 - `implementation-guide.md`
 - `decision-brief.md`
 - `backlog.md`
-- `requirement-analysis.md`
 - `next-steps.md`
 - `weekly-summary.md`
 - `reuse-candidates.md`
@@ -62,7 +61,5 @@ Runtime reports may be cited as evidence for follow-up work, but they should not
 Use `outputs/reuse-candidates.md` when a project can export reusable technical capabilities or when a target project is collecting candidate assets. Include the candidate asset, source project, reuse level, reuse cost, best-fit scenario, key risk, and evidence links.
 
 Use `outputs/asset-match-brief.md` when a new project requirement is matched against historical or open-source assets. It should not treat the target requirement as a proven asset; it should record demand-side fit, adaptation work, rejection reasons, and validation tasks.
-
-Use `outputs/requirement-analysis.md` when ingest is explicitly requirement-driven and the source document needs to be normalized into functional requirements, non-functional constraints, technical constraints, acceptance criteria, and key entities before later synthesis work.
 
 Technical asset pages should include `license_compatibility` frontmatter as engineering risk metadata. Treat GPL, ELv2, mixed-license, or unclear source boundaries as `review_required` unless project evidence and legal review confirm a narrower answer.
